@@ -49,7 +49,7 @@ pub fn main() anyerror!void {
 
         if (is_pre_rendered == false) {
             try loadSlideshow("showtime.sld");
-            // try loadSlideshow("test_public.sld");
+            try loadSlideshow("test_public.sld");
             log.info("LOADED!!!", .{});
             log.debug("I AM GOING TO PRE-RENDER!", .{});
             G.slide_renderer.preRender(G.slideshow, G.slideshow_filp.?) catch |err| {
