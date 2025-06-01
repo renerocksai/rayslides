@@ -57,22 +57,19 @@ pub const AvailableFonts = struct {
             .zig = try rl.loadFontFromMemory(".ttf", fontdata_zig, opts.fontSize, opts.fontChars),
         };
 
-        // rl.setTextureFilter(ret.normal.texture, .bilinear);
-        // rl.setTextureFilter(ret.bold.texture, .bilinear);
-        // rl.setTextureFilter(ret.italic.texture, .bilinear);
-        // rl.setTextureFilter(ret.bolditalic.texture, .bilinear);
-        // rl.setTextureFilter(ret.zig.texture, .bilinear);
         return ret;
     }
 
     pub fn loadCustomFonts(self: *AvailableFonts, fontConfig: FontConfig, slideshow_filp: []const u8) !void {
         _ = slideshow_filp; // FIXME: relpath shit
         //
+        log.info("LOADING CUSTOM FONTS", .{});
         var temp_buf: [std.fs.max_path_bytes]u8 = undefined;
         if (fontConfig.normal) |fontfile| {
             rl.unloadFont(self.normal);
             const path = try std.fmt.bufPrintZ(&temp_buf, "{s}", .{fontfile.ttf_filn});
             self.normal = try rl.loadFontEx(path, fontConfig.opts.fontSize, fontConfig.opts.fontChars);
+            log.debug("Font {s} is ready: {}", .{ fontfile.ttf_filn, self.normal.isReady() });
         }
 
         if (fontConfig.bold) |fontfile| {
@@ -98,6 +95,11 @@ pub const AvailableFonts = struct {
             const path = try std.fmt.bufPrintZ(&temp_buf, "{s}", .{fontfile.ttf_filn});
             self.zig = try rl.loadFontEx(path, fontConfig.opts.fontSize, fontConfig.opts.fontChars);
         }
+        rl.setTextureFilter(self.normal.texture, .bilinear);
+        rl.setTextureFilter(self.bold.texture, .bilinear);
+        rl.setTextureFilter(self.italic.texture, .bilinear);
+        rl.setTextureFilter(self.bolditalic.texture, .bilinear);
+        rl.setTextureFilter(self.zig.texture, .bilinear);
     }
 
     pub fn deinit(self: *AvailableFonts) void {

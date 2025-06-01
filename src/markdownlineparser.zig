@@ -36,10 +36,12 @@ pub const MdTextSpan = struct {
 pub const MdParsingError = error{color};
 
 fn parseColorLiteral(colorstr: []const u8) !rl.Color {
-    if (colorstr.len != 9 or colorstr[0] != '#') {
+    if (colorstr[0] != '#') {
+        log.err("Illegal color: {s}", .{colorstr});
         return MdParsingError.color;
     }
-    const coloru32 = std.fmt.parseInt(u32, colorstr[1..], 16) catch {
+    const coloru32 = std.fmt.parseInt(u32, colorstr[1 .. 1 + 8], 16) catch {
+        log.err("Illegal color: {s}", .{colorstr});
         return MdParsingError.color;
     };
     return rl.Color.fromInt(coloru32);

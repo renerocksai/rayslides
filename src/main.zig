@@ -17,9 +17,6 @@ pub fn main() anyerror!void {
 
     try G.init(gpa);
     defer G.deinit();
-    // try loadSlideshow("showtime.sld");
-    try loadSlideshow("test_public.sld");
-    log.info("LOADED!!!", .{});
 
     // Initialization
     //--------------------------------------------------------------------------------------
@@ -36,6 +33,7 @@ pub fn main() anyerror!void {
     // Main game loop
     var is_pre_rendered: bool = false;
 
+    rl.setTargetFPS(61);
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
         //----------------------------------------------------------------------------------
@@ -50,6 +48,9 @@ pub fn main() anyerror!void {
         rl.clearBackground(.white);
 
         if (is_pre_rendered == false) {
+            try loadSlideshow("showtime.sld");
+            // try loadSlideshow("test_public.sld");
+            log.info("LOADED!!!", .{});
             log.debug("I AM GOING TO PRE-RENDER!", .{});
             G.slide_renderer.preRender(G.slideshow, G.slideshow_filp.?) catch |err| {
                 log.err("Pre-rendering failed: {any}", .{err});
@@ -60,10 +61,24 @@ pub fn main() anyerror!void {
 
         // render slide
         // G.slide_render_width = G.internal_render_size.x - ed_anim.current_size.x;
-        // try G.slide_renderer.render(G.slide_number, slideAreaTL(), slideSizeInWindow(), G.internal_render_size);
-        try G.slide_renderer.render(1, .{ .x = 0.0, .y = 0.0 }, .{ .x = 1920, .y = 1080 }, .{ .x = 1920, .y = 1080 });
+        // try G.slide_renderer.render(G.current_slide, slideAreaTL(), slideSizeInWindow(), G.internal_render_size);
+        try G.slide_renderer.render(G.current_slide, .{ .x = 0.0, .y = 0.0 }, .{ .x = 1920, .y = 1080 }, .{ .x = 1920, .y = 1080 });
         // std.log.debug("slideAreaTL: {any}, slideSizeInWindow: {any}, internal_render_size: {any}", .{ slideAreaTL(), slideSizeInWindow(), G.internal_render_size });
-        std.log.debug(" internal_render_size: {any}", .{G.internal_render_size});
+        rl.drawFPS(20, 20);
+
+        if (rl.isKeyPressed(.space)) {
+            G.current_slide += 1;
+            if (G.current_slide >= G.slideshow.slides.items.len) {
+                G.current_slide -= 1;
+            }
+        }
+
+        if (rl.isKeyPressed(.backspace)) {
+            G.current_slide -= 1;
+            if (G.current_slide < 0) {
+                G.current_slide = 0;
+            }
+        }
     }
 }
 
@@ -203,6 +218,9 @@ fn loadSlideshow(filp: []const u8) !void {
                 // now reload fonts
                 if (pcontext.custom_fonts_present) {
                     std.log.debug("reloading fonts", .{});
+                    // FIXME: this needs to be done after GL has been initialized
+                    //        so, loadSlideshow() must not be called before
+                    //        raylib's update loop
                     try G.fonts.loadCustomFonts(pcontext.fontConfig, G.slideshow_filp.?);
                     std.log.debug("reloaded fonts", .{});
                 }
