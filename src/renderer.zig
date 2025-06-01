@@ -698,7 +698,7 @@ pub const SlideshowRenderer = struct {
         const startpos = slidePosToRenderPos(item.position, slide_tl, slide_size, internal_render_size);
         const color = col.?;
 
-        rl.drawTextEx(font, @as([:0]const u8, t), startpos, fsize, 0.0, rl.Color.blank);
+        rl.drawTextEx(font, @as([:0]const u8, t), startpos, fsize, 0.0, color);
 
         // imgui.igPushStyleColor_Vec4(imgui.ImGuiCol_Text, col.?);
         // imgui.igText(t);

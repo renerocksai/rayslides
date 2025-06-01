@@ -17,7 +17,8 @@ pub fn main() anyerror!void {
 
     try G.init(gpa);
     defer G.deinit();
-    try loadSlideshow("showtime.sld");
+    // try loadSlideshow("showtime.sld");
+    try loadSlideshow("test_public.sld");
     log.info("LOADED!!!", .{});
 
     // Initialization
@@ -60,7 +61,7 @@ pub fn main() anyerror!void {
         // render slide
         // G.slide_render_width = G.internal_render_size.x - ed_anim.current_size.x;
         // try G.slide_renderer.render(G.slide_number, slideAreaTL(), slideSizeInWindow(), G.internal_render_size);
-        try G.slide_renderer.render(6, .{ .x = 0.0, .y = 0.0 }, .{ .x = 1920, .y = 1080 }, .{ .x = 1920, .y = 1080 });
+        try G.slide_renderer.render(1, .{ .x = 0.0, .y = 0.0 }, .{ .x = 1920, .y = 1080 }, .{ .x = 1920, .y = 1080 });
         // std.log.debug("slideAreaTL: {any}, slideSizeInWindow: {any}, internal_render_size: {any}", .{ slideAreaTL(), slideSizeInWindow(), G.internal_render_size });
         std.log.debug(" internal_render_size: {any}", .{G.internal_render_size});
     }
