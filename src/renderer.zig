@@ -625,11 +625,11 @@ pub const SlideshowRenderer = struct {
         for (slide.elements.items) |element| {
             switch (element.kind) {
                 .background => {
-                    log.debug("rendering background", .{});
+                    // log.debug("rendering background", .{});
                     if (element.texture) |txt| {
                         renderImg(.{ .x = 0.0, .y = 0.0 }, internal_render_size, txt, img_tint_col, img_border_col, pos, size, internal_render_size);
                     } else {
-                        log.debug("rendering color background", .{});
+                        // log.debug("rendering color background", .{});
                         if (element.color) |color| {
                             renderBgColor(color, internal_render_size, pos, size, internal_render_size);
                         } else {
@@ -638,11 +638,11 @@ pub const SlideshowRenderer = struct {
                     }
                 },
                 .text => {
-                    log.debug("rendering text", .{});
+                    // log.debug("rendering text", .{});
                     self.renderText(&element, pos, size, internal_render_size);
                 },
                 .image => {
-                    log.debug("rendering image", .{});
+                    // log.debug("rendering image", .{});
                     if (element.texture) |txt| {
                         renderImg(element.position, element.size, txt, img_tint_col, img_border_col, pos, size, internal_render_size);
                     }
