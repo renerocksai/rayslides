@@ -11,6 +11,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    exe_mod.addCSourceFile(.{ .file = b.path("src/pdf/pdfgen.c") });
+    exe_mod.addIncludePath(b.path("src/pdf"));
+
     const exe = b.addExecutable(.{
         .name = "raytest",
         .root_module = exe_mod,

@@ -1,14 +1,15 @@
 # rayslides -- slides ported to raylib
 
-This port is minimalistic, and I wrote it to be able to edit & present slides on a Mac.
+This port is minimalistic, and I wrote it to be able to edit, present, and PDF-export slides on a Mac.
 
 Missing but maybe coming soon:
 
 - Laser Pointer
-- Exports
+- SDF-based font scaling
 
 Missing but probably not coming soon:
 
+- PPTX Export
 - Editor
 - Inspector Gadget
 
@@ -22,6 +23,7 @@ See the next section for keyboard shortcuts for slideshow control and slide navi
 | -------- | ----------- |
 | <kbd>Q</kbd> | Quit |
 | <kbd>ESC</kbd> | Quit |
+| <kbd>S</kbd> | Screen-Shot and export slideshow to PDF |
 | <kbd>F</kbd> | Toggle fullscreen |
 | <kbd>B</kbd> | Toggle Beast Mode* |
 | <kbd><-</kbd> | Goto previous slide |
