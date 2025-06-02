@@ -5,4 +5,4 @@ zig-out/
 ,rayslides-export/
 **/.DS_Store/
 .DS_Store/
-./testslides/*.pdf
+*.pdf
