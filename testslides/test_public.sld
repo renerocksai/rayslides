@@ -135,7 +135,7 @@ _
 _
 - **and so on**, _and on_
 
-@pop rightbox bullet_symbol=•
+@pop rightbox bullet_symbol=*
 _
 _
 _
