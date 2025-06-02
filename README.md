@@ -80,9 +80,11 @@ Example of the current text format - see [test_public.sld](./test_public.sld) fo
 
 # Background image
 
-@bg img=assets/bgwater.jpg
-# or for a simple colored background:
-# @bg color=#000000000
+# for a simple colored background:
+@bg color=#181818FF
+
+# or a background image:
+# @bg img=assets/bgwater.jpg
 
 # often-used text elements
 @push intro_title    x=150 y=400 w=1700 h=223 fontsize=96 color=#7A7A7AFF
@@ -95,6 +97,13 @@ Example of the current text format - see [test_public.sld](./test_public.sld) fo
 # auto-incrementing slide-number is in $slide_number
 @push slide_number x=1803 y=1027 w=40   h=40  fontsize=20 color=#404040ff text=$slide_number
 
+# -------------------------------------------------------------
+# -- content slide template
+# -------------------------------------------------------------
+@bg color=#181818FF
+@pop slide_number
+@pushslide content
+
 
 # #############################################################
 # ##   S  L  I  D  E  S
@@ -106,16 +115,15 @@ Example of the current text format - see [test_public.sld](./test_public.sld) fo
 @pop intro_subtitle text=_**Easy, text-based slideshows for Hackers**_
 @pop intro_authors text=_@renerocksai_
 
-
 # -------------------------------------------------------------
 # Some slide without slide template
 # -------------------------------------------------------------
-@slide
+@popslide content
 
-# some image on the slide
-@box img=some_image.png x=800 y=100 w=320 h=200
+# some image on the slide would look like this:
+# @box img=some_image.png x=800 y=100 w=320 h=200
 
-@box x=100 y=100 w=1720 h=880
+@box x=100 y=100 w=1720 h=880 color=#FFFFFFFF
 Here come the bullets:
 `
 Text in a box can span multiple lines and will be wrapped
@@ -132,7 +140,6 @@ Bullet list:
     - some details
 - second
 - <#808080ff>third</> in a different color
-
 ```
 
 # Building it
