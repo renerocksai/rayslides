@@ -26,14 +26,17 @@ pub fn getImageTexture(self: *Self, p: []const u8, refpath: ?[]const u8) !?rl.Te
     const image = try rl.loadImage(zpath);
     defer rl.unloadImage(image);
     const texture = try rl.loadTextureFromImage(image);
-    try self.path2tex.put(realpath, texture);
+    try self.path2tex.put(try self.allocator.dupe(u8, realpath), texture);
     return texture;
 }
 
 pub fn deinit(self: *Self) void {
-    var it = self.path2tex.valueIterator();
-    while (it.next()) |texture| {
+    var it = self.path2tex.iterator();
+    while (it.next()) |entry| {
+        const texture = entry.value_ptr.*;
+        const path = entry.key_ptr.*;
         rl.unloadTexture(texture);
+        self.allocator.free(path);
     }
     self.path2tex.deinit();
 }
