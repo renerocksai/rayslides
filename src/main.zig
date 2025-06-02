@@ -40,6 +40,12 @@ pub fn main() anyerror!void {
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
+        G.content_window_size = .{ .x = 1920, .y = 1080 };
+        if (G.content_window_size.x != G.last_window_size.x or G.content_window_size.y != G.last_window_size.y) {
+            // window size changed
+            std.log.debug("win size changed from {} to {}", .{ G.last_window_size, G.content_window_size });
+            G.last_window_size = G.content_window_size;
+        }
 
         // Draw
         //----------------------------------------------------------------------------------
@@ -85,6 +91,10 @@ pub fn main() anyerror!void {
             if (G.current_slide < 0) {
                 G.current_slide = 0;
             }
+        }
+
+        if (rl.isKeyPressed(.f)) {
+            rl.toggleFullscreen();
         }
 
         if (rl.isKeyPressed(.q)) {
