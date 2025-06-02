@@ -26,7 +26,8 @@ pub fn main() anyerror!void {
     rl.initWindow(screenWidth, screenHeight, "rayslides");
     defer rl.closeWindow(); // Close window and OpenGL context
 
-    // rl.setTargetFPS(60); // Set our game to run at 60 frames-per-second
+    rl.setTargetFPS(61);
+    var beast_mode: bool = false;
 
     //--------------------------------------------------------------------------------------
 
@@ -42,7 +43,6 @@ pub fn main() anyerror!void {
     // Main game loop
     var is_pre_rendered: bool = false;
 
-    rl.setTargetFPS(61);
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
         //----------------------------------------------------------------------------------
@@ -87,14 +87,14 @@ pub fn main() anyerror!void {
         // std.log.debug("slideAreaTL: {any}, slideSizeInWindow: {any}, internal_render_size: {any}", .{ slideAreaTL(), slideSizeInWindow(), G.internal_render_size });
         rl.drawFPS(20, 20);
 
-        if (rl.isKeyPressed(.space)) {
+        if (rl.isKeyPressed(.space) or rl.isKeyPressed(.right) or rl.isKeyPressed(.page_down)) {
             G.current_slide += 1;
             if (G.current_slide >= G.slideshow.slides.items.len) {
                 G.current_slide -= 1;
             }
         }
 
-        if (rl.isKeyPressed(.backspace)) {
+        if (rl.isKeyPressed(.backspace) or rl.isKeyPressed(.left) or rl.isKeyPressed(.page_up)) {
             G.current_slide -= 1;
             if (G.current_slide < 0) {
                 G.current_slide = 0;
@@ -107,6 +107,31 @@ pub fn main() anyerror!void {
 
         if (rl.isKeyPressed(.q)) {
             break;
+        }
+
+        if (rl.isKeyPressed(.one)) {
+            G.current_slide = 0;
+        }
+
+        if (rl.isKeyPressed(.zero)) {
+            G.current_slide = @intCast(G.slideshow.slides.items.len - 1);
+        }
+
+        if (rl.isKeyPressed(.g)) {
+            if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                G.current_slide = @intCast(G.slideshow.slides.items.len - 1);
+            } else {
+                G.current_slide = 0;
+            }
+        }
+
+        if (rl.isKeyPressed(.b)) {
+            beast_mode = !beast_mode;
+            if (beast_mode) {
+                rl.setTargetFPS(16000);
+            } else {
+                rl.setTargetFPS(61);
+            }
         }
 
         const do_reload = checkAutoReload() catch false;
