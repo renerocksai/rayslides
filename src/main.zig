@@ -30,6 +30,7 @@ pub fn main() anyerror!void {
 
     //--------------------------------------------------------------------------------------
 
+    G.slideshow_filp_to_load = try std.fmt.bufPrint(&G.slideshow_filp_to_load_buffer, "{s}", .{"./test_public.sld"});
     // Main game loop
     var is_pre_rendered: bool = false;
 
@@ -47,16 +48,22 @@ pub fn main() anyerror!void {
 
         rl.clearBackground(.white);
 
+        // (re-) load slideshow
+        if (G.slideshow_filp_to_load) |filp| {
+            try loadSlideshow(filp);
+            is_pre_rendered = false;
+        }
+
         if (is_pre_rendered == false) {
-            try loadSlideshow("showtime.sld");
-            try loadSlideshow("test_public.sld");
-            log.info("LOADED!!!", .{});
-            log.debug("I AM GOING TO PRE-RENDER!", .{});
-            G.slide_renderer.preRender(G.slideshow, G.slideshow_filp.?) catch |err| {
-                log.err("Pre-rendering failed: {any}", .{err});
-            };
-            log.info("PRE-RENDERED!!!!", .{});
-            is_pre_rendered = true;
+            if (G.slideshow_filp) |slideshow_filp| {
+                log.info("LOADED!!!", .{});
+                log.debug("I AM GOING TO PRE-RENDER!", .{});
+                G.slide_renderer.preRender(G.slideshow, slideshow_filp) catch |err| {
+                    log.err("Pre-rendering failed: {any}", .{err});
+                };
+                log.info("PRE-RENDERED!!!!", .{});
+                is_pre_rendered = true;
+            }
         }
 
         // render slide
@@ -79,7 +86,40 @@ pub fn main() anyerror!void {
                 G.current_slide = 0;
             }
         }
+
+        if (rl.isKeyPressed(.q)) {
+            break;
+        }
+
+        const do_reload = checkAutoReload() catch false;
+        if (do_reload) {
+            G.slideshow_filp_to_load = G.slideshow_filp; // signal that we need to load
+        }
     }
+}
+
+fn checkAutoReload() !bool {
+    G.hot_reload_ticker += 1;
+    if (G.slideshow_filp) |filp| {
+        if (filp.len > 0) {
+            if (G.hot_reload_ticker > G.hot_reload_interval_ticks) {
+                std.log.debug("Checking for auto-reload of `{s}`", .{filp});
+                G.hot_reload_ticker = 0;
+                var f = try std.fs.cwd().openFile(filp, .{});
+                defer f.close();
+                const x = try f.stat();
+                if (G.hot_reload_last_stat) |last| {
+                    if (x.mtime != last.mtime) {
+                        std.log.debug("RELOAD {s}", .{filp});
+                        return true;
+                    }
+                } else {
+                    G.hot_reload_last_stat = x;
+                }
+            }
+        }
+    }
+    return false;
 }
 
 // .
@@ -116,7 +156,10 @@ const AppData = struct {
     slide_renderer: *renderer.SlideshowRenderer = undefined,
     img_tint_col: rl.Vector4 = .{ .x = 1.0, .y = 1.0, .z = 1.0, .w = 1.0 }, // No tint
     img_border_col: rl.Color = .{ .r = 0, .g = 0, .b = 0, .a = 127 },
+    slideshow_filp_buffer: [std.fs.max_path_bytes]u8 = undefined,
+    slideshow_filp_to_load_buffer: [std.fs.max_path_bytes]u8 = undefined,
     slideshow_filp: ?[]const u8 = undefined,
+    slideshow_filp_to_load: ?[]const u8 = null,
     status_msg: [*c]const u8 = "",
     slideshow: *SlideShow = undefined,
     current_slide: i32 = 0,
@@ -130,7 +173,6 @@ const AppData = struct {
     openfiledialog_context: ?*anyopaque = null,
     saveas_dialog_context: ?*anyopaque = null,
     keyRepeat: i32 = 0,
-    slideshow_filp_to_load: ?[]const u8 = null,
     elementInspectorIndex: i32 = 0,
     showElementInspector: bool = false,
     autoRunTriggeredByPowerpointExport: bool = false,
@@ -155,9 +197,6 @@ const AppData = struct {
 
     fn deinit(self: *AppData) void {
         self.fonts.deinit();
-        if (self.slideshow_filp) |filp| {
-            self.allocator.free(filp);
-        }
         self.allocator.free(self.editor_memory);
         self.allocator.free(self.loaded_content);
         self.slideshow_arena.deinit();
@@ -211,7 +250,14 @@ fn loadSlideshow(filp: []const u8) !void {
             G.editor_memory[input.len] = 0;
             G.loaded_content[input.len] = 0;
             G.app_state = .presenting;
-            G.slideshow_filp = try std.fmt.allocPrint(G.allocator, "{s}", .{filp});
+            G.slideshow_filp = blk: {
+                if (G.slideshow_filp) |existing| {
+                    if (existing.ptr == filp.ptr) {
+                        break :blk filp;
+                    }
+                }
+                break :blk try std.fmt.bufPrint(&G.slideshow_filp_buffer, "{s}", .{filp});
+            };
             std.log.debug("filp is now {s}", .{G.slideshow_filp.?});
             if (parser.constructSlidesFromBuf(G.editor_memory, G.slideshow, G.slideshow_allocator)) |pcontext| {
                 // ed_anim.parser_context = pcontext;

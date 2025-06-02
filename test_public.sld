@@ -47,9 +47,9 @@
 #       That means, you will not inherit attributes from previous slides.
 
 @bg img=assets/bgwater.jpg
-@push chapter_number x=201 y=509 w=260 h=362 fontsize=300 color=#cd0f2dff 
-@push chapter_title  x=757 y=673 w=949 h=114 fontsize=72  color=#000000ff 
-@push chapter_subtitle x=757 y=794 w=887 h=141 fontsize=45 color=#993366ff 
+@push chapter_number x=201 y=509 w=260 h=362 fontsize=300 color=#cd0f2dff
+@push chapter_title  x=757 y=673 w=949 h=114 fontsize=72  color=#000000ff
+@push chapter_subtitle x=757 y=794 w=887 h=141 fontsize=45 color=#993366ff
 @pushslide chapter
 
 # -------------------------------------------------------------
@@ -66,8 +66,8 @@
 @box                    x=221  y=252  w=1750  h=223 fontsize=144 color=#000000FF text=**THANK YOU FOR YOUR ATTENTION**
 @box                    x=219  y=250  w=1750  h=223 fontsize=144 color=#cd0f2dff text=**THANK YOU FOR YOUR ATTENTION**
 #@box                    x=219  y=250  w=1750  h=223 fontsize=144 color=#606060FF text=**THANK YOU FOR YOUR ATTENTION**
-@push thankyou_title    x=219  y=655  w=918  h=223 fontsize=52 color=#000000ff 
-@push thankyou_title_shadow    x=221  y=657  w=918  h=223 fontsize=52 color=#000000ff 
+@push thankyou_title    x=219  y=655  w=918  h=223 fontsize=52 color=#000000ff
+@push thankyou_title_shadow    x=221  y=657  w=918  h=223 fontsize=52 color=#000000ff
 @push thankyou_subtitle x=219  y=749  w=836  h=246 fontsize=45 color=#000000ff
 @push thankyou_authors  x=219  y=836  w=836  h=243 fontsize=45 color=#993366ff
 @pushslide thankyou
@@ -115,10 +115,10 @@ _
 @popslide content
 @pop slide_title text=~~**Formatting Text**~~
 
-@pop  sources_info 
+@pop  sources_info
 here come the sources
 
-@pop leftbox 
+@pop leftbox
 This is Markdown _**ta-dah**_, **tah**, _dah_!
 _
 empty lines are marked with just an _ underscore
@@ -129,7 +129,7 @@ _
 _
 - and so on
 _
-- now let us create a text that is very likely to need to be wrapped since it is too long to be rendered on a single line of text in the left box 
+- now let us create a text that is very likely to need to be wrapped since it is too long to be rendered on a single line of text in the left box
 _
 - **and so on**, _and on_
 
@@ -158,9 +158,9 @@ _
 @box img=assets/godotscr2.png x=400 y=150 w=1475 h=840
 
 @pop leftbox w=260 h=800
-- single executable for presenting and editing 
+- single executable for presenting and editing
 _
-- text based slide format. 
+- text based slide format.
 _
 - no need to drag, click, and find and edit properties
 _
