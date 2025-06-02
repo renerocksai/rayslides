@@ -1,21 +1,20 @@
 const std = @import("std");
 
+var static_buffer: [1024]u8 = undefined;
+
 /// note that you need to dupe this if you store it somewhere
-pub fn relpathToAbspath(relpath: []const u8, refpath: ?[]const u8) ![]const u8 {
+pub fn pathRelativeTo(path: []const u8, refpath: ?[]const u8) ![]const u8 {
     var absp: []const u8 = undefined;
-    const static_buffer = struct {
-        var b: [1024]u8 = undefined;
-    };
 
     if (refpath) |rp| {
         const pwd = std.fs.path.dirname(rp);
         if (pwd == null) {
-            absp = relpath;
+            absp = path;
         } else {
-            absp = try std.fmt.bufPrint(&static_buffer.b, "{s}{c}{s}", .{ pwd, std.fs.path.sep, relpath });
+            absp = try std.fmt.bufPrint(&static_buffer, "{s}{c}{s}", .{ pwd.?, std.fs.path.sep, path });
         }
     } else {
-        absp = relpath;
+        absp = path;
     }
     return absp;
 }

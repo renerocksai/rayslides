@@ -30,7 +30,15 @@ pub fn main() anyerror!void {
 
     //--------------------------------------------------------------------------------------
 
-    G.slideshow_filp_to_load = try std.fmt.bufPrint(&G.slideshow_filp_to_load_buffer, "{s}", .{"./test_public.sld"});
+    // get arg
+    const args = try std.process.argsAlloc(gpa);
+    defer std.process.argsFree(gpa, args);
+    if (args.len > 1) {
+        log.debug("loading... {s}", .{args[1]});
+        G.slideshow_filp_to_load = try std.fmt.bufPrint(&G.slideshow_filp_to_load_buffer, "{s}", .{args[1]});
+    } else {
+        std.process.fatal("No slideshow arg given!", .{});
+    }
     // Main game loop
     var is_pre_rendered: bool = false;
 
