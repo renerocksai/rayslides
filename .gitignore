@@ -2,3 +2,7 @@
 .jj/
 .zig-cache/
 zig-out/
+,rayslides-export/
+**/.DS_Store/
+.DS_Store/
+./testslides/*.pdf
