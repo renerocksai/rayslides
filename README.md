@@ -24,10 +24,10 @@ See the next section for keyboard shortcuts for slideshow control and slide navi
 | <kbd>ESC</kbd> | Quit |
 | <kbd>F</kbd> | Toggle fullscreen |
 | <kbd>B</kbd> | Toggle Beast Mode* |
-| Cursor <kbd><-</kbd> | Goto previous slide |
+| <kbd><-</kbd> | Goto previous slide |
 | <kbd>PgUp</kbd> | Goto previous slide |
 | <kbd>Backspace</kbd> | Goto previous slide |
-| Cursor <kbd>-></kbd> | Goto next slide |
+| <kbd>-></kbd> | Goto next slide |
 | <kbd>PgDown</kbd> | Goto next slide |
 | <kbd>Space</kbd> | Goto next slide |
 | <kbd>1</kbd> | Goto first slide |
