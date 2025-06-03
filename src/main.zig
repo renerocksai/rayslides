@@ -130,6 +130,16 @@ const ExportController = struct {
     }
 };
 
+const LaserPointer = struct {
+    show: bool = false,
+    color: rl.Color = .red,
+    size: f32 = 20,
+
+    pub fn toggle(self: *LaserPointer) void {
+        self.show = !self.show;
+    }
+};
+
 pub fn main() anyerror!void {
     var gpa_state: std.heap.GeneralPurposeAllocator(.{}) = .{};
     defer _ = gpa_state.deinit();
@@ -164,6 +174,7 @@ pub fn main() anyerror!void {
     var is_pre_rendered: bool = false;
     var export_controller: ExportController = try .init(gpa, null);
     defer export_controller.deinit();
+    var laser_pointer: LaserPointer = .{};
 
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
@@ -243,6 +254,14 @@ pub fn main() anyerror!void {
             }
         }
 
+        if (laser_pointer.show) {
+            const pos = rl.getMousePosition();
+            rl.drawCircleV(pos, laser_pointer.size, laser_pointer.color);
+        }
+
+        //
+        // hanlde keys
+        //
         if (rl.isKeyPressed(.space) or rl.isKeyPressed(.right) or rl.isKeyPressed(.page_down)) {
             G.current_slide += 1;
             if (G.current_slide >= G.slideshow.slides.items.len) {
@@ -284,9 +303,18 @@ pub fn main() anyerror!void {
         if (rl.isKeyPressed(.b)) {
             beast_mode = !beast_mode;
             if (beast_mode) {
-                rl.setTargetFPS(16000);
+                rl.setTargetFPS(0);
             } else {
                 rl.setTargetFPS(61);
+            }
+        }
+
+        if (rl.isKeyPressed(.l)) {
+            laser_pointer.toggle();
+            if (laser_pointer.show) {
+                rl.hideCursor();
+            } else {
+                rl.showCursor();
             }
         }
 
@@ -320,23 +348,6 @@ fn checkAutoReload() !bool {
     }
     return false;
 }
-
-// .
-// App State
-// .
-const AppState = enum {
-    mainmenu,
-    presenting,
-    slide_overview,
-};
-
-const SaveAsReason = enum {
-    none,
-    quit,
-    load,
-    new,
-    newtemplate,
-};
 
 const AppData = struct {
     allocator: std.mem.Allocator = undefined,

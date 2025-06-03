@@ -4,7 +4,6 @@ This port is minimalistic, and I wrote it to be able to edit, present, and PDF-e
 
 Missing but maybe coming soon:
 
-- Laser Pointer
 - SDF-based font scaling
 
 Missing but probably not coming soon:
@@ -25,6 +24,7 @@ See the next section for keyboard shortcuts for slideshow control and slide navi
 | <kbd>ESC</kbd> | Quit |
 | <kbd>S</kbd> | Screen-Shot and export slideshow to PDF |
 | <kbd>F</kbd> | Toggle fullscreen |
+| <kbd>L</kbd> | Toggle laserpointer |
 | <kbd>B</kbd> | Toggle Beast Mode* |
 | <kbd><-</kbd> | Goto previous slide |
 | <kbd>PgUp</kbd> | Goto previous slide |
