@@ -1,4 +1,4 @@
-# rayslides -- slides ported to raylib
+# rayslides -- [slides](https://github.com/renerocksai/slides) ported to raylib
 
 This port is minimalistic, and I wrote it to be able to edit, present, and PDF-export slides on a Mac.
 
