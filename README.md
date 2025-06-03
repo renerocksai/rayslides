@@ -4,6 +4,7 @@ This port is minimalistic, and I wrote it to be able to edit, present, and PDF-e
 
 Missing but maybe coming soon:
 
+- Drawing with Laser Pointer
 - SDF-based font scaling
 
 Missing but probably not coming soon:
