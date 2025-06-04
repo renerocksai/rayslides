@@ -134,9 +134,19 @@ const LaserPointer = struct {
     show: bool = false,
     color: rl.Color = .red,
     size: f32 = 20,
+    size_index: usize = 0,
+    sizes: [6]f32 = .{ 10, 20, 30, 50, 70, 100 },
 
     pub fn toggle(self: *LaserPointer) void {
         self.show = !self.show;
+    }
+
+    pub fn changeSize(self: *LaserPointer) void {
+        self.size_index += 1;
+        if (self.size_index >= self.sizes.len) {
+            self.size_index = 0;
+        }
+        self.size = self.sizes[self.size_index];
     }
 };
 
@@ -386,11 +396,17 @@ pub fn main() anyerror!void {
         }
 
         if (rl.isKeyPressed(.l)) {
-            laser_pointer.toggle();
-            if (laser_pointer.show) {
-                rl.hideCursor();
+            if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                if (laser_pointer.show) {
+                    laser_pointer.changeSize();
+                }
             } else {
-                rl.showCursor();
+                laser_pointer.toggle();
+                if (laser_pointer.show) {
+                    rl.hideCursor();
+                } else {
+                    rl.showCursor();
+                }
             }
         }
 

@@ -26,6 +26,7 @@ See the next section for keyboard shortcuts for slideshow control and slide navi
 | <kbd>S</kbd> | Screen-Shot and export slideshow to PDF |
 | <kbd>F</kbd> | Toggle fullscreen |
 | <kbd>L</kbd> | Toggle laserpointer |
+| <kbd>SHIFT</kbd> + <kbd>L</kbd> | Iterate laserpointer sizes |
 | <kbd>B</kbd> | Toggle Beast Mode* |
 | <kbd><-</kbd> | Goto previous slide |
 | <kbd>PgUp</kbd> | Goto previous slide |
