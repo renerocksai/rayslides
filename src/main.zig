@@ -137,8 +137,62 @@ const LaserPointer = struct {
     size_index: usize = 0,
     sizes: [6]f32 = .{ 10, 20, 30, 50, 70, 100 },
 
+    draw_state: struct {
+        thick: f32 = 5.0,
+        vertices: std.ArrayList(rl.Vector2),
+        mousepos_prev: rl.Vector2 = .{ .x = 0, .y = 0 },
+    },
+
+    pub fn init(gpa: std.mem.Allocator) !LaserPointer {
+        return .{
+            .draw_state = .{
+                .vertices = try std.ArrayList(rl.Vector2).initCapacity(gpa, 1000),
+            },
+        };
+    }
+
+    pub fn deinit(self: *LaserPointer) void {
+        self.draw_state.vertices.deinit();
+    }
+
     pub fn toggle(self: *LaserPointer) void {
         self.show = !self.show;
+        if (self.show) {
+            self.clearDrawing();
+        }
+    }
+
+    fn clearDrawing(self: *LaserPointer) void {
+        self.draw_state.vertices.shrinkRetainingCapacity(0);
+    }
+
+    pub fn draw(self: *LaserPointer) !void {
+        const pos = rl.getMousePosition();
+        rl.drawCircleV(pos, self.size, self.color);
+
+        // add vertex only if mousepos has changed
+        if (pos.x != self.draw_state.mousepos_prev.x or pos.y != self.draw_state.mousepos_prev.y) {
+            const mouse_down = rl.isMouseButtonDown(.left);
+            if (mouse_down) {
+                try self.draw_state.vertices.append(pos);
+            }
+
+            // if mouse released, add sentinel value
+            if (rl.isMouseButtonReleased(.left)) {
+                try self.draw_state.vertices.append(.{ .x = 0, .y = 0 });
+            }
+
+            // draw vertices
+            for (self.draw_state.vertices.items, 0..) |vertex, i| {
+                if (i == 0) continue;
+
+                // draw a line from A to B
+                const pos_a = self.draw_state.vertices.items[i - 1];
+                if (vertex.x != 0.0 and vertex.y != 0.0 and pos_a.x != 0.0 and pos_a.y != 0.0) {
+                    rl.drawLineEx(pos_a, vertex, self.draw_state.thick, self.color);
+                }
+            }
+        }
     }
 
     pub fn changeSize(self: *LaserPointer) void {
@@ -250,7 +304,8 @@ pub fn main() anyerror!void {
     var is_pre_rendered: bool = false;
     var export_controller: ExportController = try .init(gpa, null);
     defer export_controller.deinit();
-    var laser_pointer: LaserPointer = .{};
+    var laser_pointer: LaserPointer = try .init(gpa);
+    defer laser_pointer.deinit();
     var banner: Banner = try .init();
     defer banner.deinit();
 
@@ -333,8 +388,7 @@ pub fn main() anyerror!void {
         }
 
         if (laser_pointer.show) {
-            const pos = rl.getMousePosition();
-            rl.drawCircleV(pos, laser_pointer.size, laser_pointer.color);
+            try laser_pointer.draw();
         }
 
         if (banner.show) {
@@ -408,6 +462,10 @@ pub fn main() anyerror!void {
                     rl.showCursor();
                 }
             }
+        }
+
+        if (rl.isKeyPressed(.c)) {
+            laser_pointer.clearDrawing();
         }
 
         const do_reload = checkAutoReload() catch false;

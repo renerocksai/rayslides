@@ -2,9 +2,10 @@
 
 This port is minimalistic, and I wrote it to be able to edit, present, and PDF-export slides on a Mac.
 
+Due to the new [raylib](https://github.com/raysan5/raylib) dep, builds should work on all 3 major platforms now.
+
 Missing but maybe coming soon:
 
-- Drawing with Laser Pointer
 - SDF-based font scaling
 
 Missing but probably not coming soon:
@@ -27,6 +28,7 @@ See the next section for keyboard shortcuts for slideshow control and slide navi
 | <kbd>F</kbd> | Toggle fullscreen |
 | <kbd>L</kbd> | Toggle laserpointer |
 | <kbd>SHIFT</kbd> + <kbd>L</kbd> | Iterate laserpointer sizes |
+| <kbd>C</kbd> | Clear laserpointer drawing |
 | <kbd>B</kbd> | Toggle Beast Mode* |
 | <kbd><-</kbd> | Goto previous slide |
 | <kbd>PgUp</kbd> | Goto previous slide |
