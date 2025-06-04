@@ -140,6 +140,72 @@ const LaserPointer = struct {
     }
 };
 
+const Banner = struct {
+    logo_texture: ?rl.Texture = null,
+    showtime_seconds: f64 = 2.5,
+    show: bool = false,
+
+    pub fn init() !Banner {
+        const img = try rl.loadImageFromMemory(".png", @embedFile("assets/raylib_96x96.png"));
+        defer rl.unloadImage(img);
+
+        return .{
+            .logo_texture = try rl.loadTextureFromImage(img),
+            .show = true,
+        };
+    }
+
+    pub fn reset(self: *Banner) void {
+        self.showtime_seconds = rl.getTime() + 2.5;
+        self.show = true;
+    }
+
+    pub fn render(self: *Banner) void {
+        if (self.show) {
+            if (rl.getTime() <= self.showtime_seconds) {
+                if (self.logo_texture) |logo| {
+                    const w: i32 = 860;
+                    const h: i32 = 350;
+                    const l: i32 = (1920 - w) / 2;
+                    const t: i32 = (1080 - h) / 2;
+                    const border_thick: f32 = 5.0;
+                    const border_inset: f32 = 10.0;
+                    const padding: i32 = 30;
+                    const logo_size: i32 = 96;
+                    const font_size: i32 = 75;
+                    const font_size_rene: i32 = 30;
+                    const backdrop_thick: i32 = 20;
+                    const backdrop_color: rl.Color = rl.Color.alpha(rl.Color.white, 0.3);
+                    const bg_color: rl.Color = rl.Color.alpha(rl.Color.ray_white, 0.97);
+
+                    rl.drawRectangle(l - backdrop_thick, t - backdrop_thick, w + 2 * backdrop_thick, h + 2 * backdrop_thick, backdrop_color);
+                    rl.drawRectangle(l, t, w, h, bg_color);
+
+                    const border_rect: rl.Rectangle = .{
+                        .x = l + border_inset,
+                        .y = t + border_inset,
+                        .width = w - border_inset * 2,
+                        .height = h - border_inset * 2,
+                    };
+                    rl.drawRectangleLinesEx(border_rect, border_thick, rl.Color.sky_blue);
+                    rl.drawText("Slides, now with...", l + padding + border_inset, t + h - padding - font_size, font_size, rl.Color.gold);
+                    rl.drawText("@renerocksai", l + padding + border_inset, t + padding + border_inset, font_size_rene, rl.Color.brightness(rl.Color.sky_blue, -0.2));
+                    logo.draw(l + w - logo_size - padding - border_inset * 2, t + h - padding - logo_size - 10, rl.Color.white);
+                }
+            } else {
+                self.show = false;
+            }
+        }
+    }
+
+    pub fn deinit(self: *Banner) void {
+        if (self.logo_texture) |logo| {
+            rl.unloadTexture(logo);
+            self.logo_texture = null;
+        }
+    }
+};
+
 pub fn main() anyerror!void {
     var gpa_state: std.heap.GeneralPurposeAllocator(.{}) = .{};
     defer _ = gpa_state.deinit();
@@ -175,6 +241,8 @@ pub fn main() anyerror!void {
     var export_controller: ExportController = try .init(gpa, null);
     defer export_controller.deinit();
     var laser_pointer: LaserPointer = .{};
+    var banner: Banner = try .init();
+    defer banner.deinit();
 
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
         // Update
@@ -259,6 +327,10 @@ pub fn main() anyerror!void {
             rl.drawCircleV(pos, laser_pointer.size, laser_pointer.color);
         }
 
+        if (banner.show) {
+            banner.render();
+        }
+
         //
         // hanlde keys
         //
@@ -301,11 +373,15 @@ pub fn main() anyerror!void {
         }
 
         if (rl.isKeyPressed(.b)) {
-            beast_mode = !beast_mode;
-            if (beast_mode) {
-                rl.setTargetFPS(0);
+            if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                banner.reset();
             } else {
-                rl.setTargetFPS(61);
+                beast_mode = !beast_mode;
+                if (beast_mode) {
+                    rl.setTargetFPS(0);
+                } else {
+                    rl.setTargetFPS(61);
+                }
             }
         }
 
