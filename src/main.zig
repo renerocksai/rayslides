@@ -84,6 +84,7 @@ const ExportController = struct {
         return !self.ready_toggle;
     }
 
+    // PDF snapshotting
     pub fn snapshot(self: *ExportController) !void {
         if (!self.running) return;
         if (self.exported_imgs == null) return error.InvalidState;
@@ -96,6 +97,20 @@ const ExportController = struct {
         img.setFormat(.uncompressed_r8g8b8);
         if (!img.exportToFile(img_path)) {
             log.err("Could not export screenshot to {s}", .{img_path});
+        }
+    }
+
+    // single screenshot
+    pub fn screenshot(self: *ExportController, slideshow_filename: ?[]const u8) !void {
+        if (slideshow_filename) |filp| {
+            const img_path = try std.fmt.allocPrintZ(self.gpa, "{s}.png", .{filp});
+            defer self.gpa.free(img_path);
+
+            var img = try rl.loadImageFromScreen();
+            if (!img.exportToFile(img_path)) {
+                log.err("Could not export screenshot to {s}", .{img_path});
+            }
+            self.final_messagebox_message = try std.fmt.allocPrintZ(self.gpa, "Screenshot saved to {s}", .{img_path});
         }
     }
 
@@ -342,9 +357,15 @@ pub fn main() anyerror!void {
         }
 
         if (rl.isKeyPressed(.s)) {
-            if (export_controller.running == false) {
-                export_controller.start(G.current_slide, G.slideshow.slides.items.len);
-                G.current_slide = 0;
+            if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                if (export_controller.running == false) {
+                    export_controller.start(G.current_slide, G.slideshow.slides.items.len);
+                    G.current_slide = 0;
+                }
+            } else {
+                if (export_controller.running == false) {
+                    try export_controller.screenshot(G.slideshow_filp);
+                }
             }
         }
 
@@ -381,7 +402,7 @@ pub fn main() anyerror!void {
         rl.drawFPS(20, 20);
 
         if (export_controller.final_messagebox_message) |msg| {
-            if (rg.messageBox(.{ .x = (1920 - 400) / 2, .y = 300, .width = 400, .height = 100 }, "PDF Export", msg, "OK") >= 0) {
+            if (rg.messageBox(.{ .x = (1920 - 400) / 2, .y = 300, .width = 400, .height = 100 }, "Slideshow Export", msg, "OK") >= 0) {
                 gpa.free(msg);
                 export_controller.final_messagebox_message = null;
             }
@@ -582,7 +603,7 @@ fn loadSlideshow(filp: []const u8) !void {
         }
         // setStatusMsg(sliceToC(input));
 
-        // parse the shit
+        // parse the slideshow
         if (G.reinit()) |_| {
             // after reinit, the buffers are memset to zeros
             @memcpy(G.editor_memory[0..input.len], input);

@@ -24,7 +24,8 @@ See the next section for keyboard shortcuts for slideshow control and slide navi
 | -------- | ----------- |
 | <kbd>Q</kbd> | Quit |
 | <kbd>ESC</kbd> | Quit |
-| <kbd>S</kbd> | Screen-Shot and export slideshow to PDF |
+| <kbd>S</kbd> | Screen-Shot current slide  to PNG |
+| <kbd>SHIFT</kbd> + <kbd>S</kbd> | Screen-Shot and export slideshow to PDF |
 | <kbd>F</kbd> | Toggle fullscreen |
 | <kbd>L</kbd> | Toggle laserpointer |
 | <kbd>SHIFT</kbd> + <kbd>L</kbd> | Iterate laserpointer sizes |
