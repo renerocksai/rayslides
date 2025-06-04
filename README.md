@@ -4,6 +4,8 @@ This port is minimalistic, and I wrote it to be able to edit, present, and PDF-e
 
 Due to the new [raylib](https://github.com/raysan5/raylib) dep, builds should work on all 3 major platforms now.
 
+![screenshot](rayslides.jpg)
+
 Missing but maybe coming soon:
 
 - SDF-based font scaling
