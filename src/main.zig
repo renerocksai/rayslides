@@ -221,8 +221,10 @@ const LaserPointer = struct {
 
 const Banner = struct {
     logo_texture: ?rl.Texture = null,
-    showtime_seconds: f64 = 2.5,
+    showtime_seconds: f64 = banner_display_time_seconds,
     show: bool = false,
+
+    pub const banner_display_time_seconds: f64 = 4.0;
 
     pub fn init() !Banner {
         const img = try rl.loadImageFromMemory(".png", @embedFile("assets/raylib_96x96.png"));
@@ -235,7 +237,7 @@ const Banner = struct {
     }
 
     pub fn reset(self: *Banner) void {
-        self.showtime_seconds = rl.getTime() + 2.5;
+        self.showtime_seconds = rl.getTime() + banner_display_time_seconds;
         self.show = true;
     }
 
@@ -243,7 +245,13 @@ const Banner = struct {
         if (self.show) {
             if (rl.getTime() <= self.showtime_seconds) {
                 if (self.logo_texture) |logo| {
-                    const w: i32 = 860;
+                    const font_size: i32 = 75;
+                    const text1 = "Slides, now with ";
+                    const text1_width: i32 = rl.measureText(text1, font_size);
+                    const text2 = "100% more ";
+                    const text2_width: i32 = rl.measureText(text2, font_size);
+
+                    const w: i32 = 1200;
                     const h: i32 = 350;
                     const l: i32 = (1920 - w) / 2;
                     const t: i32 = (1080 - h) / 2;
@@ -251,7 +259,6 @@ const Banner = struct {
                     const border_inset: f32 = 10.0;
                     const padding: i32 = 30;
                     const logo_size: i32 = 96;
-                    const font_size: i32 = 75;
                     const font_size_rene: i32 = 30;
                     const backdrop_thick: i32 = 20;
                     const backdrop_color: rl.Color = rl.Color.alpha(rl.Color.white, 0.3);
@@ -267,9 +274,17 @@ const Banner = struct {
                         .height = h - border_inset * 2,
                     };
                     rl.drawRectangleLinesEx(border_rect, border_thick, rl.Color.sky_blue);
-                    rl.drawText("Slides, now with...", l + padding + border_inset, t + h - padding - font_size, font_size, rl.Color.gold);
+
+                    rl.drawText(text1, l + padding + border_inset, t + h - padding - font_size, font_size, rl.Color.gold);
+                    rl.drawText(text2, text1_width + l + padding + @as(i32, @intFromFloat(border_inset)), t + h - padding - font_size, font_size, rl.Color.red);
+
                     rl.drawText("@renerocksai", l + padding + border_inset, t + padding + border_inset, font_size_rene, rl.Color.brightness(rl.Color.sky_blue, -0.2));
-                    logo.draw(l + w - logo_size - padding - border_inset * 2, t + h - padding - logo_size - 10, rl.Color.white);
+
+                    logo.draw(
+                        text1_width + text2_width + l + padding + @as(i32, @intFromFloat(border_inset)),
+                        t + h - padding - logo_size - 10,
+                        rl.Color.white,
+                    );
                 }
             } else {
                 self.show = false;
@@ -497,12 +512,11 @@ pub fn main() anyerror!void {
 }
 
 fn checkAutoReload() !bool {
-    G.hot_reload_ticker += 1;
     if (G.slideshow_filp) |filp| {
         if (filp.len > 0) {
-            if (G.hot_reload_ticker > G.hot_reload_interval_ticks) {
+            if (G.hot_reload_next_time <= rl.getTime()) {
                 std.log.debug("Checking for auto-reload of `{s}`", .{filp});
-                G.hot_reload_ticker = 0;
+                G.hot_reload_next_time += G.hot_reload_interval_seconds;
                 var f = try std.fs.cwd().openFile(filp, .{});
                 defer f.close();
                 const x = try f.stat();
@@ -536,8 +550,8 @@ const AppData = struct {
     slideshow_filp_to_load: ?[]const u8 = null,
     slideshow: *SlideShow = undefined,
     current_slide: i32 = 0,
-    hot_reload_ticker: usize = 0,
-    hot_reload_interval_ticks: usize = 1500 / 16,
+    hot_reload_next_time: f64 = 0.0,
+    hot_reload_interval_seconds: f64 = 1.0,
     hot_reload_last_stat: ?std.fs.File.Stat = undefined,
 
     fn init(self: *AppData, gpa: std.mem.Allocator) !void {
