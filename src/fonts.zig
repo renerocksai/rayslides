@@ -16,10 +16,67 @@ pub const FontLoadDesc = struct {
     ttf_filn: []const u8,
 };
 
+// this is a var because raylib wrapper demands a []u32
+// The character set to load
+pub var default_fontchars = [_]i32{
+    // 95 standard printable ASCII chars
+    32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  46,
+    47,  48,  49,  50,  51,  52,  53,  54,  55,  56,  57,  58,  59,  60,  61,
+    62,  63,  64,  65,  66,  67,  68,  69,  70,  71,  72,  73,  74,  75,  76,
+    77,  78,  79,  80,  81,  82,  83,  84,  85,  86,  87,  88,  89,  90,  91,
+    92,  93,  94,  95,  96,  97,  98,  99,  100, 101, 102, 103, 104, 105, 106,
+    107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121,
+    122, 123, 124, 125,
+    126,
+
+    // Custom characters (German umlauts, Eszett, Euro, Bullet)
+    196, // Ä
+    214, // Ö
+    220, // Ü
+    228, // ä
+    246, // ö
+    252, // ü
+    223, // ß
+    8364, // €
+    8226, // •,
+
+    // --- Common Punctuation & Symbols ---
+    8211, // – (en dash)
+    8212, // — (em dash)
+    8216, // ‘ (left single quote)
+    8217, // ’ (right single quote)
+    8220, // “ (left double quote)
+    8221, // ” (right double quote)
+    8230, // … (ellipsis)
+    169, // © (copyright)
+    174, // ® (registered trademark)
+    8482, // ™ (trademark)
+
+    // --- Mathematical & Scientific ---
+    176, // ° (degree symbol)
+    177, // ± (plus-minus)
+    181, // µ (micro sign / mu)
+    215, // × (multiplication sign)
+    247, // ÷ (division sign)
+    8730, // √ (square root)
+    8734, // ∞ (infinity)
+    8747, // ∫ (integral)
+    8776, // ≈ (almost equal to)
+    8800, // ≠ (not equal to)
+    8804, // ≤ (less than or equal to)
+    8805, // ≥ (greater than or equal to)
+    916, // Δ (uppercase delta)
+    960, // π (lowercase pi)
+    8592, // ← (left arrow)
+    8594, // → (right arrow)
+    8593, // ↑ (up arrow)
+    8595, // ↓ (down arrow)
+};
+
 pub const FontConfig = struct {
     pub const Opts = struct {
         fontSize: i32 = 32,
-        fontChars: ?[]i32 = null,
+        fontChars: ?[]i32 = default_fontchars[0..],
     };
     opts: Opts,
     gui_font_size: ?i32 = null,

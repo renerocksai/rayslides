@@ -12,7 +12,7 @@
 @color=#000000ff
 @bullet_color=#cd0f2dff
 # Override bullet symbol default of > with the bullet point
-# @bullet_symbol=•
+@bullet_symbol=•
 
 # -------------------------------------------------------------
 # -- definitions for later
