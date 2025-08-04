@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     exe_mod.addIncludePath(b.path("src/pdf"));
 
     const exe = b.addExecutable(.{
-        .name = "raytest",
+        .name = "rayslides",
         .root_module = exe_mod,
     });
 

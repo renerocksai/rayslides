@@ -305,11 +305,26 @@ pub fn main() anyerror!void {
     defer _ = gpa_state.deinit();
     const gpa = gpa_state.allocator();
 
-    try G.init(gpa);
-    defer G.deinit();
+    //--------------------------------------------------------------------------------------
+
+    // get arg
+    const slideshow_to_load = blk: {
+        const args = try std.process.argsAlloc(gpa);
+        defer std.process.argsFree(gpa, args);
+        if (args.len > 1) {
+            log.debug("loading... {s}", .{args[1]});
+            break :blk try std.fmt.bufPrint(&G.slideshow_filp_to_load_buffer, "{s}", .{args[1]});
+        } else {
+            std.process.fatal("No slideshow arg given!", .{});
+        }
+    };
 
     // Initialization
     //--------------------------------------------------------------------------------------
+    try G.init(gpa);
+    defer G.deinit();
+    G.slideshow_filp_to_load = slideshow_to_load;
+
     const screenWidth = 1920;
     const screenHeight = 1080;
 
@@ -319,17 +334,6 @@ pub fn main() anyerror!void {
     rl.setTargetFPS(61);
     var beast_mode: bool = false;
 
-    //--------------------------------------------------------------------------------------
-
-    // get arg
-    const args = try std.process.argsAlloc(gpa);
-    defer std.process.argsFree(gpa, args);
-    if (args.len > 1) {
-        log.debug("loading... {s}", .{args[1]});
-        G.slideshow_filp_to_load = try std.fmt.bufPrint(&G.slideshow_filp_to_load_buffer, "{s}", .{args[1]});
-    } else {
-        std.process.fatal("No slideshow arg given!", .{});
-    }
     // Main game loop
     var is_pre_rendered: bool = false;
     var export_controller: ExportController = try .init(gpa, null);
