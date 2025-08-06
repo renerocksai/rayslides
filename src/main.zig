@@ -253,10 +253,11 @@ const Banner = struct {
 
                     const w: i32 = 1200;
                     const h: i32 = 350;
-                    const l: i32 = (1920 - w) / 2;
-                    const t: i32 = (1080 - h) / 2;
+                    const l: i32 = @divTrunc(rl.getScreenWidth() - w, 2);
+                    const t: i32 = @divTrunc(rl.getScreenHeight() - h, 2);
                     const border_thick: f32 = 5.0;
                     const border_inset: f32 = 10.0;
+                    const border_inset_i: i32 = @intFromFloat(border_inset);
                     const padding: i32 = 30;
                     const logo_size: i32 = 96;
                     const font_size_rene: i32 = 30;
@@ -268,20 +269,20 @@ const Banner = struct {
                     rl.drawRectangle(l, t, w, h, bg_color);
 
                     const border_rect: rl.Rectangle = .{
-                        .x = l + border_inset,
-                        .y = t + border_inset,
-                        .width = w - border_inset * 2,
-                        .height = h - border_inset * 2,
+                        .x = @as(f32, @floatFromInt(l)) + border_inset,
+                        .y = @as(f32, @floatFromInt(t)) + border_inset,
+                        .width = @as(f32, @floatFromInt(w)) - border_inset * 2,
+                        .height = @as(f32, @floatFromInt(h)) - border_inset * 2,
                     };
                     rl.drawRectangleLinesEx(border_rect, border_thick, rl.Color.sky_blue);
 
-                    rl.drawText(text1, l + padding + border_inset, t + h - padding - font_size, font_size, rl.Color.gold);
-                    rl.drawText(text2, text1_width + l + padding + @as(i32, @intFromFloat(border_inset)), t + h - padding - font_size, font_size, rl.Color.red);
+                    rl.drawText(text1, l + padding + border_inset_i, t + h - padding - font_size, font_size, rl.Color.gold);
+                    rl.drawText(text2, text1_width + l + padding + border_inset_i, t + h - padding - font_size, font_size, rl.Color.red);
 
-                    rl.drawText("@renerocksai", l + padding + border_inset, t + padding + border_inset, font_size_rene, rl.Color.brightness(rl.Color.sky_blue, -0.2));
+                    rl.drawText("@renerocksai", l + padding + border_inset_i, t + padding + border_inset_i, font_size_rene, rl.Color.brightness(rl.Color.sky_blue, -0.2));
 
                     logo.draw(
-                        text1_width + text2_width + l + padding + @as(i32, @intFromFloat(border_inset)),
+                        text1_width + text2_width + l + padding + border_inset_i,
                         t + h - padding - logo_size - 10,
                         rl.Color.white,
                     );
@@ -325,9 +326,10 @@ pub fn main() anyerror!void {
     defer G.deinit();
     G.slideshow_filp_to_load = slideshow_to_load;
 
-    const screenWidth = 1920;
-    const screenHeight = 1080;
+    const screenWidth: i32 = if (rl.getScreenWidth() >= 1920) 1920 else 1280;
+    const screenHeight: i32 = if (rl.getScreenHeight() >= 1080) 1080 else 720;
 
+    rl.setConfigFlags(.{ .window_resizable = false });
     rl.initWindow(screenWidth, screenHeight, "rayslides");
     defer rl.closeWindow(); // Close window and OpenGL context
 
@@ -348,7 +350,7 @@ pub fn main() anyerror!void {
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
         //----------------------------------------------------------------------------------
-        G.content_window_size = .{ .x = 1920, .y = 1080 };
+        G.content_window_size = .{ .x = @floatFromInt(screenWidth), .y = @floatFromInt(screenHeight) };
         if (G.content_window_size.x != G.last_window_size.x or G.content_window_size.y != G.last_window_size.y) {
             // window size changed
             std.log.debug("win size changed from {} to {}", .{ G.last_window_size, G.content_window_size });
@@ -416,12 +418,14 @@ pub fn main() anyerror!void {
         // render slide
         // G.slide_render_width = G.internal_render_size.x - ed_anim.current_size.x;
         // try G.slide_renderer.render(G.current_slide, slideAreaTL(), slideSizeInWindow(), G.internal_render_size);
-        try G.slide_renderer.render(G.current_slide, .{ .x = 0.0, .y = 0.0 }, .{ .x = 1920, .y = 1080 }, .{ .x = 1920, .y = 1080 });
+        try G.slide_renderer.render(G.current_slide, .{ .x = 0.0, .y = 0.0 }, .{ .x = @floatFromInt(screenWidth), .y = @floatFromInt(screenHeight) }, .{ .x = 1920, .y = 1080 });
         // std.log.debug("slideAreaTL: {any}, slideSizeInWindow: {any}, internal_render_size: {any}", .{ slideAreaTL(), slideSizeInWindow(), G.internal_render_size });
-        rl.drawFPS(20, 20);
+        if (beast_mode) {
+            rl.drawFPS(20, 20);
+        }
 
         if (export_controller.final_messagebox_message) |msg| {
-            if (rg.messageBox(.{ .x = (1920 - 400) / 2, .y = 300, .width = 400, .height = 100 }, "Slideshow Export", msg, "OK") >= 0) {
+            if (rg.messageBox(.{ .x = @floatFromInt(@divTrunc(screenWidth - 400, 2)), .y = 300, .width = 400, .height = 100 }, "Slideshow Export", msg, "OK") >= 0) {
                 gpa.free(msg);
                 export_controller.final_messagebox_message = null;
             }
@@ -453,6 +457,7 @@ pub fn main() anyerror!void {
         }
 
         if (rl.isKeyPressed(.f)) {
+            rl.setWindowSize(screenWidth, screenHeight);
             rl.toggleFullscreen();
         }
 
