@@ -58,6 +58,9 @@ pub const ParserContext = struct {
     allocator: std.mem.Allocator,
     input: [:0]const u8 = undefined,
 
+    let_substitutions: std.StringHashMap([]const u8),
+    let_substituted_lines: std.ArrayList([]const u8),
+
     parsed_line_number: usize = 0,
     parsed_line_offset: usize = 0,
 
@@ -89,6 +92,8 @@ pub const ParserContext = struct {
         var self = try a.create(ParserContext);
         self.* = ParserContext{
             .allocator = a,
+            .let_substitutions = std.StringHashMap([]const u8).init(a),
+            .let_substituted_lines = std.ArrayList([]const u8).init(a),
             .push_contexts = std.StringHashMap(slides.ItemContext).init(a),
             .push_slides = std.StringHashMap(*slides.Slide).init(a),
             .current_slide = try slides.Slide.new(a),
@@ -107,10 +112,20 @@ pub const ParserContext = struct {
         return self;
     }
 
-    fn deinit(self: *ParserContext) void {
+    pub fn deinit(self: *ParserContext) void {
         self.parser_errors.deinit();
         self.push_contexts.deinit();
         self.push_slides.deinit();
+        var it = self.let_substitutions.iterator();
+        while (it.next()) |kv| {
+            self.allocator.free(kv.key_ptr.*);
+            self.allocator.free(kv.value_ptr.*);
+        }
+        for (self.let_substituted_lines.items) |line| {
+            log.debug("FREEING line {s}", .{line});
+            self.allocator.free(line);
+        }
+        self.let_substituted_lines.deinit();
     }
 
     fn logAllErrors(self: *ParserContext) void {
@@ -169,34 +184,93 @@ pub fn constructSlidesFromBuf(input: []const u8, slideshow: *slides.SlideShow, a
 
     context.input = try allocator.dupeZ(u8, input);
     log.info("input len: {d}, context.input len: {d}", .{ input.len, context.input.len });
-    log.info("input is: {s}", .{context.input});
+    // log.info("input is: {s}", .{context.input});
 
     const start: usize = if (std.mem.startsWith(u8, context.input, "\xEF\xBB\xBF")) 3 else 0;
-    var it = std.mem.splitScalar(u8, context.input[start..], '\n');
+    var it = std.mem.splitScalar(u8, input[start..], '\n');
 
     var parsing_item_context = slides.ItemContext{};
 
     while (it.next()) |line_untrimmed| {
         {
-            const line = std.mem.trimRight(u8, line_untrimmed, " \t\r");
-            log.info("the line {d} is : {s}", .{ context.parsed_line_number, line });
+            const line_unprocessed = std.mem.trimRight(u8, line_untrimmed, " \t\r");
+            log.info("the line {d} is : len={d} {s}", .{ context.parsed_line_number, line_unprocessed.len, line_unprocessed });
             context.parsed_line_number += 1;
             defer context.parsed_line_offset += line_untrimmed.len + 1;
 
-            if (line.len == 0) {
+            if (line_unprocessed.len == 0) {
                 log.debug("line {d} len == 0!", .{context.parsed_line_number});
                 continue;
             }
 
-            if (line[0] == 0) {
+            if (line_unprocessed[0] == 0) {
                 log.debug("line {d} char[0] == 0!", .{context.parsed_line_number});
                 continue;
             }
 
             log.info("Parsing line {d} at offset {d}", .{ context.parsed_line_number, context.parsed_line_offset });
-            if (context.input[context.parsed_line_offset] != line[0]) {
-                log.err("line {d} assumed to start at offset {} but saw {c}({}) instead of {c}({})", .{ context.parsed_line_number, context.parsed_line_offset, line[0], line[0], context.input[context.parsed_line_offset], context.input[context.parsed_line_offset] });
+            if (context.input[context.parsed_line_offset] != line_unprocessed[0]) {
+                log.err(
+                    "line {d} assumed to start at offset {} but saw {c}({}) instead of {c}({})",
+                    .{
+                        context.parsed_line_number,
+                        context.parsed_line_offset,
+                        line_unprocessed[0],
+                        line_unprocessed[0],
+                        context.input[context.parsed_line_offset],
+                        context.input[context.parsed_line_offset],
+                    },
+                );
                 return error.Overflow;
+            }
+
+            // try to handle let substitutions
+            var subst_arena_state: std.heap.ArenaAllocator = .init(context.allocator);
+            defer subst_arena_state.deinit();
+            const subst_arena = subst_arena_state.allocator();
+            const line = blk: {
+                // if there's one $ or no $
+                if (std.mem.indexOfScalar(u8, line_unprocessed, '$') == std.mem.lastIndexOfScalar(u8, line_unprocessed, '$')) {
+                    break :blk line_unprocessed;
+                }
+
+                var line_current = line_unprocessed;
+                // there might be sth to substitute
+                // for each potential subst
+                var subst_it = context.let_substitutions.iterator();
+                while (subst_it.next()) |kv| {
+                    var num_it: usize = 0;
+                    while (std.mem.indexOf(u8, line_current, kv.key_ptr.*)) |found_pos| {
+                        log.debug("it={d}: Found `{s}` at pos {d} in `{s}`", .{ num_it, kv.key_ptr.*, found_pos, line_current });
+                        const replaced = try std.mem.replaceOwned(u8, subst_arena, line_current, kv.key_ptr.*, kv.value_ptr.*);
+                        log.debug("it={d} replaced line is `{s}`", .{ num_it, replaced });
+                        num_it += 1;
+                        line_current = replaced;
+                    }
+                }
+                const replacement_line = try context.allocator.dupe(u8, line_current);
+                try context.let_substituted_lines.append(replacement_line);
+                break :blk replacement_line;
+            };
+
+            // @let command
+            if (std.mem.startsWith(u8, line, "@let")) {
+                var let_it = std.mem.splitScalar(u8, line["@let".len..], '=');
+                if (let_it.next()) |key| {
+                    const value = let_it.rest();
+
+                    log.debug("@let: replacement for `{s}` is `{s}`", .{ key, value });
+
+                    const key_clean = std.mem.trim(u8, key, " \t");
+                    const key_to_replace = try std.fmt.allocPrint(context.allocator, "${s}$", .{key_clean});
+                    const value_clean = std.mem.trim(u8, value, " \t");
+
+                    try context.let_substitutions.put(
+                        try context.allocator.dupe(u8, key_to_replace),
+                        try context.allocator.dupe(u8, value_clean),
+                    );
+                }
+                continue;
             }
 
             if (std.mem.startsWith(u8, line, "#")) {

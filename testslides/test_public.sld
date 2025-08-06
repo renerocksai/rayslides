@@ -14,6 +14,8 @@
 # Override bullet symbol default of > with the bullet point
 @bullet_symbol=•
 
+@let ZIGCOLOR = #F7A41DFF
+
 # -------------------------------------------------------------
 # -- definitions for later
 # -------------------------------------------------------------
@@ -81,7 +83,7 @@
 # -------------------------------------------------------------
 @popslide intro
 @pop intro_title_shadow text=!Slideshows in ZIG!
-@pop intro_title text=!Slideshows in <#F7A41DFF>ZIG</>!
+@pop intro_title text=!Slideshows in <$ZIGCOLOR$>ZIG</>!
 @pop intro_subtitle text=_**Easy, text-based slideshows for Hackers, now with**_
 @pop intro_authors text=_@renerocksai_
 
@@ -215,3 +217,4 @@ _
 @box img=assets/GitHub-Mark-64px.png x=1120 y=45 w=64 h=64
 # -------------------------------------------------------------
 # eof commits the slide
+

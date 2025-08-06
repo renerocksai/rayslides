@@ -642,7 +642,8 @@ fn loadSlideshow(filp: []const u8) !void {
                 break :blk try std.fmt.bufPrint(&G.slideshow_filp_buffer, "{s}", .{filp});
             };
             std.log.debug("filp is now {s}", .{G.slideshow_filp.?});
-            if (parser.constructSlidesFromBuf(G.editor_memory, G.slideshow, G.slideshow_allocator)) |pcontext| {
+            if (parser.constructSlidesFromBuf(G.editor_memory[0..input.len], G.slideshow, G.slideshow_allocator)) |pcontext| {
+                defer pcontext.deinit();
                 // ed_anim.parser_context = pcontext;
                 // now reload fonts
                 if (pcontext.custom_fonts_present) {
