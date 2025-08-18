@@ -93,6 +93,9 @@ Example of the current text format - see [test_public.sld](./testslides/test_pub
 # or a background image:
 # @bg img=assets/bgwater.jpg
 
+# change default line height from 1.0 to 1.2
+@line_height=1.2
+
 # often-used text elements
 @push intro_title    x=150 y=400 w=1700 h=223 fontsize=96 color=#7A7A7AFF
 @push intro_subtitle x=219 y=728 w=836 h=246 fontsize=45 color=#cd0f2dff
