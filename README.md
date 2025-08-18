@@ -1,5 +1,7 @@
 # rayslides -- [slides](https://github.com/renerocksai/slides) ported to raylib
 
+See [here](https://github.com/renerocksai/slides) for the original slides project.
+
 This port is minimalistic, and I wrote it to be able to edit, present, and PDF-export slides on a Mac.
 
 Due to the new [raylib](https://github.com/raysan5/raylib) dep, builds should work on all 3 major platforms now.
