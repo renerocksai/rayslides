@@ -37,6 +37,7 @@ const RenderElement = struct {
     fontStyle: my_fonts.FontStyle = .normal,
     underlined: bool = false,
     underline_width: ?i32 = null,
+    line_height_factor: ?f32 = null,
     bullet_color: ?rl.Color = null,
     texture: ?rl.Texture2D = null,
     bullet_symbol: [*:0]const u8 = "",
@@ -149,6 +150,7 @@ pub const SlideshowRenderer = struct {
                 .size = item.size,
                 .fontSize = null,
                 .underline_width = null,
+                .line_height_factor = null,
                 .text = null,
                 .color = item.color,
             });
@@ -186,6 +188,7 @@ pub const SlideshowRenderer = struct {
 
         const color = item.color orelse return;
         const underline_width = item.underline_width orelse 0;
+        const line_height_factor = item.line_height_factor orelse 1.0;
 
         if (item.text) |t| {
             const tl_pos = rl.Vector2{ .x = item.position.x, .y = item.position.y };
@@ -197,7 +200,8 @@ pub const SlideshowRenderer = struct {
                 .underline_width = @intCast(underline_width),
                 .color = color,
                 .text = "", // will be overridden immediately
-                .current_line_height = line_height_bullet_width.y, // will be overridden immediately but needed if text starts with empty line(s)
+                .current_line_height = line_height_bullet_width.y * line_height_factor, // will be overridden immediately but needed if text starts with empty line(s)
+                .current_line_height_factor = line_height_factor,
             };
 
             // slide number
@@ -273,6 +277,7 @@ pub const SlideshowRenderer = struct {
         current_pos: rl.Vector2 = .{ .x = 0.0, .y = 0.0 },
         available_size: rl.Vector2 = .{ .x = 0.0, .y = 0.0 },
         current_line_height: f32 = 0,
+        current_line_height_factor: f32 = 0,
         fontSize: i32 = 0,
         underline_width: usize = 0,
         color: rl.Color = .blank,
@@ -394,7 +399,9 @@ pub const SlideshowRenderer = struct {
                     layoutContext.current_pos.x += attempted_span_size.x;
                     // if something is rendered into the currend line, then adjust the line height if necessary
                     if (attempted_span_size.y > layoutContext.current_line_height) {
-                        layoutContext.current_line_height = attempted_span_size.y;
+                        // TODO: check if this is correct: we multiply the new line height by the line_height_factor.
+                        //       maybe we should only add the delta between lhf = 1.0 and current lhf
+                        layoutContext.current_line_height = attempted_span_size.y * layoutContext.current_line_height_factor;
                     }
                 } else {
                     // we need to check with how many words  we can get away with:
@@ -477,7 +484,7 @@ pub const SlideshowRenderer = struct {
                                 layoutContext.current_pos.x += attempted_span_size.x;
                                 // something is rendered into the currend line, so adjust the line height if necessary
                                 if (attempted_span_size.y > layoutContext.current_line_height) {
-                                    layoutContext.current_line_height = attempted_span_size.y;
+                                    layoutContext.current_line_height = attempted_span_size.y * layoutContext.current_line_height_factor;
                                 }
 
                                 // we line break here and render the remaining word
@@ -507,7 +514,7 @@ pub const SlideshowRenderer = struct {
                                 layoutContext.current_pos.x += attempted_span_size.x;
                                 // something is rendered into the currend line, so adjust the line height if necessary
                                 if (attempted_span_size.y > layoutContext.current_line_height) {
-                                    layoutContext.current_line_height = attempted_span_size.y;
+                                    layoutContext.current_line_height = attempted_span_size.y * layoutContext.current_line_height_factor;
                                 }
 
                                 // let's not break the line because of the last word

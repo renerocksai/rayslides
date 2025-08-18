@@ -13,6 +13,7 @@
 @bullet_color=#cd0f2dff
 # Override bullet symbol default of > with the bullet point
 @bullet_symbol=•
+@line_height=1.1
 
 @let ZIGCOLOR = #F7A41DFF
 

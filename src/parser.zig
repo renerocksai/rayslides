@@ -293,6 +293,14 @@ pub fn constructSlidesFromBuf(input: []const u8, slideshow: *slides.SlideShow, a
                 continue;
             }
 
+            if (std.mem.startsWith(u8, line, "@line_height=")) {
+                parseLineHeight(line, slideshow, context) catch |err| {
+                    reportErrorInContext(err, context, null);
+                    continue;
+                };
+                continue;
+            }
+
             if (std.mem.startsWith(u8, line, "@color=")) {
                 parseDefaultColor(line, slideshow, context) catch |err| {
                     reportErrorInContext(err, context, null);
@@ -430,6 +438,22 @@ fn parseUnderlineWidth(line: []const u8, slideshow: *slides.SlideShow, context: 
                 };
 
                 log.debug("global underline_width: {d}", .{slideshow.default_underline_width});
+            }
+        }
+    }
+}
+
+fn parseLineHeight(line: []const u8, slideshow: *slides.SlideShow, context: *ParserContext) !void {
+    var it = std.mem.tokenizeScalar(u8, line, '=');
+    if (it.next()) |word| {
+        if (std.mem.eql(u8, word, "@line_height")) {
+            if (it.next()) |sizestr| {
+                slideshow.default_line_height_factor = std.fmt.parseFloat(f32, sizestr) catch |err| {
+                    reportErrorInContext(err, context, "@line_height value not float-parseable");
+                    return;
+                };
+
+                log.debug("global line_height_factor: {d}", .{slideshow.default_line_height_factor});
             }
         }
     }
@@ -613,6 +637,15 @@ fn parseItemAttributes(line: []const u8, context: *ParserContext) !slides.ItemCo
                         item_context.underline_width = width;
                     }
                 }
+                if (std.mem.eql(u8, attrname, "line_height")) {
+                    if (attr_it.next()) |sizestr| {
+                        const height = std.fmt.parseFloat(f32, sizestr) catch |err| {
+                            reportErrorInContext(err, context, "cannot parse line_height=");
+                            continue;
+                        };
+                        item_context.line_height_factor = height;
+                    }
+                }
                 if (std.mem.eql(u8, attrname, "text")) {
                     after_text_directive = true;
                     if (attr_it.next()) |textafterequal| {
@@ -661,6 +694,7 @@ fn mergeParserAndItemContext(parsing_item_context: *slides.ItemContext, item_con
     if (parsing_item_context.position == null) parsing_item_context.position = item_context.position;
     if (parsing_item_context.size == null) parsing_item_context.size = item_context.size;
     if (parsing_item_context.underline_width == null) parsing_item_context.underline_width = item_context.underline_width;
+    if (parsing_item_context.line_height_factor == null) parsing_item_context.line_height_factor = item_context.line_height_factor;
     if (parsing_item_context.bullet_color == null) parsing_item_context.bullet_color = item_context.bullet_color;
 }
 

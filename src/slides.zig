@@ -10,6 +10,7 @@ pub const SlideShow = struct {
 
     // defaults that can be overridden while parsing
     default_fontsize: i32 = 16,
+    default_line_height_factor: f32 = 1.0,
     default_underline_width: i32 = 1,
     default_color: rl.Color = .light_gray,
     default_bullet_color: rl.Color = .red,
@@ -41,6 +42,7 @@ pub const Slide = struct {
     bullet_color: rl.Color = .red,
     bullet_symbol: ?[]const u8 = null,
     underline_width: i32 = 1,
+    line_height_factor: ?f32 = null,
 
     // .
 
@@ -64,6 +66,7 @@ pub const Slide = struct {
         if (ctx.bullet_color) |bul| self.bullet_color = bul;
         if (ctx.underline_width) |uw| self.underline_width = uw;
         if (ctx.bullet_symbol) |bs| self.bullet_symbol = bs;
+        if (ctx.line_height_factor) |lhf| self.line_height_factor = lhf;
     }
 
     pub fn fromSlide(orig: *Slide, a: std.mem.Allocator) !*Slide {
@@ -81,6 +84,7 @@ pub const SlideItemKind = enum {
 
 pub const SlideItemError = error{
     TextNull,
+    LineHeightNull,
     ImgPathNull,
     FontSizeNull,
     ColorNull,
@@ -93,6 +97,7 @@ pub const SlideItem = struct {
     kind: SlideItemKind = .background,
     text: ?[]const u8 = null,
     fontSize: ?i32 = null,
+    line_height_factor: ?f32 = null,
     color: ?rl.Color = .blank,
     img_path: ?[]const u8 = null,
     position: rl.Vector2 = .{ .x = 0.0, .y = 0.0 },
@@ -122,6 +127,7 @@ pub const SlideItem = struct {
         if (context.underline_width) |w| self.underline_width = w;
         if (context.bullet_color) |color| self.bullet_color = color;
         if (context.bullet_symbol) |symbol| self.bullet_symbol = symbol;
+        if (context.line_height_factor) |lhf| self.line_height_factor = lhf;
     }
     pub fn applySlideDefaultsIfNecessary(self: *SlideItem, slide: *Slide) void {
         if (self.fontSize == null) self.fontSize = slide.fontsize;
@@ -129,17 +135,21 @@ pub const SlideItem = struct {
         if (self.underline_width == null) self.underline_width = slide.underline_width;
         if (self.bullet_color == null) self.bullet_color = slide.bullet_color;
         if (self.bullet_symbol == null) self.bullet_symbol = slide.bullet_symbol;
+        if (self.line_height_factor == null) self.line_height_factor = slide.line_height_factor;
     }
+
     pub fn applySlideShowDefaultsIfNecessary(self: *SlideItem, slideshow: *SlideShow) void {
         self.fontSize = self.fontSize orelse slideshow.default_fontsize;
         self.color = self.color orelse slideshow.default_color;
         self.underline_width = self.underline_width orelse slideshow.default_underline_width;
         self.bullet_color = self.bullet_color orelse slideshow.default_bullet_color;
         self.bullet_symbol = self.bullet_symbol orelse slideshow.default_bullet_symbol;
+        self.line_height_factor = self.line_height_factor orelse slideshow.default_line_height_factor;
     }
 
     pub fn sanityCheck(self: *SlideItem) SlideItemError!void {
         if (self.text == null and self.color == null and self.kind == .textbox) return SlideItemError.TextNull;
+        if (self.line_height_factor == null and self.kind == .textbox) return SlideItemError.LineHeightNull;
         if (self.fontSize == null and self.kind == .textbox) return SlideItemError.FontSizeNull;
         if (self.color == null and self.kind == .textbox) return SlideItemError.ColorNull;
         if (self.underline_width == null and self.kind == .textbox) return SlideItemError.UnderlineWidthNull;
@@ -186,6 +196,7 @@ pub const SlideItem = struct {
                 log.info(indent ++ "uwidth: {any}", .{self.underline_width});
                 log.info(indent ++ "bcolor: {any}", .{self.bullet_color});
                 log.info(indent ++ "bsymbl: {any}", .{self.bullet_symbol});
+                log.info(indent ++ "  line_height_factor: {any}", .{self.line_height_factor});
             },
         }
         log.info(indent ++ "-----------------------", .{});
@@ -197,6 +208,7 @@ pub const ItemContext = struct {
     context_name: ?[]const u8 = null,
     text: ?[]const u8 = null,
     fontSize: ?i32 = null,
+    line_height_factor: ?f32 = null,
     color: ?rl.Color = null,
     img_path: ?[]const u8 = null,
     position: ?rl.Vector2 = null,
@@ -235,6 +247,10 @@ pub const ItemContext = struct {
         }
         if (self.bullet_symbol == null) {
             if (other.bullet_symbol) |symbol| self.bullet_symbol = symbol;
+        }
+
+        if (self.line_height_factor == null) {
+            if (other.line_height_factor) |lhf| self.line_height_factor = lhf;
         }
     }
 };
