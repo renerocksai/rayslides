@@ -38,5 +38,5 @@ pub fn deinit(self: *Self) void {
         rl.unloadTexture(texture);
         self.allocator.free(path);
     }
-    self.path2tex.deinit();
+    self.path2tex.deinit(self.allocator);
 }

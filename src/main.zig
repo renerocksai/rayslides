@@ -89,7 +89,12 @@ const ExportController = struct {
         if (!self.running) return;
         if (self.exported_imgs == null) return error.InvalidState;
 
-        const img_path = try std.fmt.allocPrintZ(self.gpa, "{s}/slide-{d}.png", .{ self.export_dir, self.current_slide_number });
+        const img_path = try std.fmt.allocPrintSentinel(
+            self.gpa,
+            "{s}/slide-{d}.png",
+            .{ self.export_dir, self.current_slide_number },
+            0,
+        );
         defer self.gpa.free(img_path);
 
         try self.exported_imgs.?.append(self.gpa, try self.gpa.dupe(u8, img_path));
@@ -103,20 +108,20 @@ const ExportController = struct {
     // single screenshot
     pub fn screenshot(self: *ExportController, slideshow_filename: ?[]const u8) !void {
         if (slideshow_filename) |filp| {
-            const img_path = try std.fmt.allocPrintZ(self.gpa, "{s}.png", .{filp});
+            const img_path = try std.fmt.allocPrintSentinel(self.gpa, "{s}.png", .{filp}, 0);
             defer self.gpa.free(img_path);
 
             var img = try rl.loadImageFromScreen();
             if (!img.exportToFile(img_path)) {
                 log.err("Could not export screenshot to {s}", .{img_path});
             }
-            self.final_messagebox_message = try std.fmt.allocPrintZ(self.gpa, "Screenshot saved to {s}", .{img_path});
+            self.final_messagebox_message = try std.fmt.allocPrintSentinel(self.gpa, "Screenshot saved to {s}", .{img_path}, 0);
         }
     }
 
     pub fn to_pdf(self: *ExportController, slideshow_name: []const u8) !void {
         if (self.exported_imgs == null) return error.InvalidState;
-        const pdf_name = try std.fmt.allocPrintZ(self.gpa, "{s}.pdf", .{slideshow_name});
+        const pdf_name = try std.fmt.allocPrintSentinel(self.gpa, "{s}.pdf", .{slideshow_name}, 0);
         defer self.gpa.free(pdf_name);
 
         var info: c.pdf_info = .{};
@@ -141,11 +146,12 @@ const ExportController = struct {
             return error.PdfCreate;
         }
 
-        self.final_messagebox_message = try std.fmt.allocPrintZ(self.gpa, "Slideshow exported to {s}", .{pdf_name});
+        self.final_messagebox_message = try std.fmt.allocPrintSentinel(self.gpa, "Slideshow exported to {s}", .{pdf_name}, 0);
     }
 };
 
 const LaserPointer = struct {
+    allocator: std.mem.Allocator,
     show: bool = false,
     color: rl.Color = .red,
     size: f32 = 20,
@@ -160,6 +166,7 @@ const LaserPointer = struct {
 
     pub fn init(gpa: std.mem.Allocator) !LaserPointer {
         return .{
+            .allocator = gpa,
             .draw_state = .{
                 .vertices = try std.ArrayList(rl.Vector2).initCapacity(gpa, 1000),
             },
@@ -167,7 +174,7 @@ const LaserPointer = struct {
     }
 
     pub fn deinit(self: *LaserPointer) void {
-        self.draw_state.vertices.deinit();
+        self.draw_state.vertices.deinit(self.allocator);
     }
 
     pub fn toggle(self: *LaserPointer) void {
@@ -189,12 +196,12 @@ const LaserPointer = struct {
         if (pos.x != self.draw_state.mousepos_prev.x or pos.y != self.draw_state.mousepos_prev.y) {
             const mouse_down = rl.isMouseButtonDown(.left);
             if (mouse_down) {
-                try self.draw_state.vertices.append(pos);
+                try self.draw_state.vertices.append(self.allocator, pos);
             }
 
             // if mouse released, add sentinel value
             if (rl.isMouseButtonReleased(.left)) {
-                try self.draw_state.vertices.append(.{ .x = 0, .y = 0 });
+                try self.draw_state.vertices.append(self.allocator, .{ .x = 0, .y = 0 });
             }
 
             // draw vertices

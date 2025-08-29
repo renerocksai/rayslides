@@ -93,11 +93,11 @@ pub const ParserContext = struct {
         self.* = ParserContext{
             .allocator = a,
             .let_substitutions = std.StringHashMap([]const u8).init(a),
-            .let_substituted_lines = std.ArrayList([]const u8).init(a),
+            .let_substituted_lines = std.ArrayList([]const u8).empty,
             .push_contexts = std.StringHashMap(slides.ItemContext).init(a),
             .push_slides = std.StringHashMap(*slides.Slide).init(a),
             .current_slide = try slides.Slide.new(a),
-            .parser_errors = std.ArrayList(ParserErrorContext).init(a),
+            .parser_errors = std.ArrayList(ParserErrorContext).empty,
             .allErrorsCstrArray = null,
         };
         self.fontConfig = .{
@@ -113,7 +113,7 @@ pub const ParserContext = struct {
     }
 
     pub fn deinit(self: *ParserContext) void {
-        self.parser_errors.deinit();
+        self.parser_errors.deinit(self.allocator);
         self.push_contexts.deinit();
         self.push_slides.deinit();
         var it = self.let_substitutions.iterator();
@@ -125,7 +125,7 @@ pub const ParserContext = struct {
             log.debug("FREEING line {s}", .{line});
             self.allocator.free(line);
         }
-        self.let_substituted_lines.deinit();
+        self.let_substituted_lines.deinit(self.allocator);
     }
 
     fn logAllErrors(self: *ParserContext) void {
@@ -162,7 +162,7 @@ fn reportErrorInContext(err: anyerror, ctx: *ParserContext, msg: ?[]const u8) vo
         .line_offset = ctx.parsed_line_offset,
         .message = msg,
     };
-    ctx.parser_errors.append(pec) catch |internal_err| {
+    ctx.parser_errors.append(ctx.allocator, pec) catch |internal_err| {
         log.err("Could not add error to error list!", .{});
         log.err("    The error to be reported: {any}", .{err});
         log.err("    The error that prevented it: {any}", .{internal_err});
@@ -171,7 +171,7 @@ fn reportErrorInContext(err: anyerror, ctx: *ParserContext, msg: ?[]const u8) vo
 
 fn reportErrorInParsingContext(err: anyerror, pctx: *const slides.ItemContext, ctx: *ParserContext, msg: ?[]const u8) void {
     const pec = ParserErrorContext.init(err, pctx.line_number, pctx.line_offset, msg);
-    ctx.parser_errors.append(pec) catch |internal_err| {
+    ctx.parser_errors.append(ctx.allocator, pec) catch |internal_err| {
         log.err("Could not add error to error list!", .{});
         log.err("    The error to be reported: {any}", .{err});
         log.err("    The error that prevented it: {any}", .{internal_err});
@@ -249,7 +249,7 @@ pub fn constructSlidesFromBuf(input: []const u8, slideshow: *slides.SlideShow, a
                     }
                 }
                 const replacement_line = try context.allocator.dupe(u8, line_current);
-                try context.let_substituted_lines.append(replacement_line);
+                try context.let_substituted_lines.append(context.allocator, replacement_line);
                 break :blk replacement_line;
             };
 
@@ -364,7 +364,7 @@ pub fn constructSlidesFromBuf(input: []const u8, slideshow: *slides.SlideShow, a
     commitParsingContext(&parsing_item_context, context) catch |err| {
         reportErrorInContext(err, context, null);
     };
-    context.slideshow.slides.append(context.current_slide) catch |err| {
+    context.slideshow.slides.append(context.allocator, context.current_slide) catch |err| {
         reportErrorInContext(err, context, null);
     };
 
@@ -544,8 +544,8 @@ fn parseItemAttributes(line: []const u8, context: *ParserContext) !slides.ItemCo
 
     log.debug("Parsing {s}", .{item_context.directive});
 
-    var text_words = std.ArrayList([]const u8).init(context.allocator);
-    defer text_words.deinit();
+    var text_words = std.ArrayList([]const u8).empty;
+    defer text_words.deinit(context.allocator);
     var after_text_directive = false;
 
     while (word_it.next()) |word| {
@@ -649,7 +649,7 @@ fn parseItemAttributes(line: []const u8, context: *ParserContext) !slides.ItemCo
                 if (std.mem.eql(u8, attrname, "text")) {
                     after_text_directive = true;
                     if (attr_it.next()) |textafterequal| {
-                        try text_words.append(textafterequal);
+                        try text_words.append(context.allocator, textafterequal);
                     }
                 }
                 if (std.mem.eql(u8, attrname, "img")) {
@@ -659,7 +659,7 @@ fn parseItemAttributes(line: []const u8, context: *ParserContext) !slides.ItemCo
                 }
             }
         } else {
-            try text_words.append(word);
+            try text_words.append(context.allocator, word);
         }
     }
     if (text_words.items.len > 0) {
@@ -750,7 +750,7 @@ fn commitParsingContext(parsing_item_context: *slides.ItemContext, context: *Par
         // after that, clear the current item context
         if (context.first_slide_emitted) {
             context.current_slide.applyContext(parsing_item_context); //  ignore current item context, it's a @slide
-            try context.slideshow.slides.append(context.current_slide);
+            try context.slideshow.slides.append(context.allocator, context.current_slide);
         }
         context.first_slide_emitted = true;
         // pop the slide and reset the item context
@@ -778,7 +778,7 @@ fn commitParsingContext(parsing_item_context: *slides.ItemContext, context: *Par
         // after that, clear the current item context
         if (context.first_slide_emitted) {
             context.current_slide.applyContext(parsing_item_context); //  ignore current item context, it's a @slide
-            try context.slideshow.slides.append(context.current_slide);
+            try context.slideshow.slides.append(context.allocator, context.current_slide);
         }
         context.first_slide_emitted = true;
 
@@ -832,7 +832,7 @@ fn commitItemToSlide(parsing_item_context: *slides.ItemContext, parser_context: 
         slide_item.kind = .background;
     }
     // log.info("\n\n\n ADDING {s} as {any}", .{ parsing_item_context.directive, slide_item.kind });
-    try parser_context.current_slide.items.?.append(slide_item.*);
+    try parser_context.current_slide.items.?.append(parser_context.allocator, slide_item.*);
 
     slide_item.sanityCheck() catch |err| {
         reportErrorInParsingContext(err, parsing_item_context, parser_context, "item sanity check failed");

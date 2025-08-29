@@ -23,17 +23,18 @@ pub const SlideShow = struct {
     pub fn new(a: std.mem.Allocator) !*SlideShow {
         var self = try a.create(SlideShow);
         self.* = .{};
-        self.slides = SlideList.init(a);
+        self.slides = SlideList.empty;
         // TODO: init font, fontsize arraylists
         return self;
     }
 
-    pub fn deinit(self: *SlideShow) void {
-        self.slides.deinit();
+    pub fn deinit(self: *SlideShow, a: std.mem.Allocator) void {
+        self.slides.deinit(a);
     }
 };
 
 pub const Slide = struct {
+    allocator: std.mem.Allocator,
     pos_in_editor: usize = 0,
     line_in_editor: usize = 0,
     items: ?std.ArrayList(SlideItem) = null,
@@ -50,14 +51,14 @@ pub const Slide = struct {
         log.debug("slide create 0 ", .{});
         var self: *Slide = try a.create(Slide);
         log.debug("slide create 2", .{});
-        self.* = .{};
+        self.* = .{ .allocator = a };
         log.debug("slide create 3", .{});
-        self.items = std.ArrayList(SlideItem).init(a);
+        self.items = std.ArrayList(SlideItem).empty;
         log.debug("slide create 4", .{});
         return self;
     }
     pub fn deinit(self: *Slide) void {
-        self.items.deinit();
+        self.items.deinit(self.allocator);
     }
 
     pub fn applyContext(self: *Slide, ctx: *ItemContext) void {
@@ -71,7 +72,7 @@ pub const Slide = struct {
 
     pub fn fromSlide(orig: *Slide, a: std.mem.Allocator) !*Slide {
         var n = try new(a);
-        try n.items.?.appendSlice(orig.items.?.items);
+        try n.items.?.appendSlice(n.allocator, orig.items.?.items);
         return n;
     }
 };

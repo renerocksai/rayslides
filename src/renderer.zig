@@ -49,7 +49,7 @@ const RenderedSlide = struct {
     fn new(allocator: std.mem.Allocator) !*RenderedSlide {
         var self: *RenderedSlide = try allocator.create(RenderedSlide);
         self.* = .{};
-        self.elements = std.ArrayList(RenderElement).init(allocator);
+        self.elements = std.ArrayList(RenderElement).empty;
         return self;
     }
 };
@@ -68,13 +68,13 @@ pub const SlideshowRenderer = struct {
             .fonts = fonts,
         };
         self.*.allocator = allocator;
-        self.renderedSlides = std.ArrayList(*RenderedSlide).init(allocator);
+        self.renderedSlides = std.ArrayList(*RenderedSlide).empty;
         self.md_parser.init(self.allocator);
         return self;
     }
 
     pub fn deinit(self: *SlideshowRenderer) void {
-        self.texture_cache.deinit();
+        self.texture_cache.deinit(self.allocator);
     }
 
     pub fn preRender(self: *SlideshowRenderer, slideshow: *const slides.SlideShow, slideshow_filp: []const u8) !void {
@@ -110,7 +110,7 @@ pub const SlideshowRenderer = struct {
             }
 
             // now add the slide
-            try self.renderedSlides.append(renderSlide);
+            try self.renderedSlides.append(self.allocator, renderSlide);
         }
         log.debug("LEAVE preRender with {d} slides", .{self.renderedSlides.items.len});
     }
@@ -120,12 +120,12 @@ pub const SlideshowRenderer = struct {
         if (item.img_path) |p| {
             const texptr = try self.texture_cache.getImageTexture(p, slideshow_filp);
             if (texptr) |t| {
-                try renderSlide.elements.append(RenderElement{ .kind = .background, .texture = t });
+                try renderSlide.elements.append(self.allocator, RenderElement{ .kind = .background, .texture = t });
             }
         } else {
             if (item.color) |color| {
                 log.info("bg has color {}", .{color});
-                try renderSlide.elements.append(RenderElement{ .kind = .background, .color = color });
+                try renderSlide.elements.append(self.allocator, RenderElement{ .kind = .background, .color = color });
             } else {
                 log.info("bg has NO COLOR", .{});
             }
@@ -144,7 +144,7 @@ pub const SlideshowRenderer = struct {
         // box without text, but with color: render a colored box!
         if (item.text == null and item.color != null) {
             log.debug("preRenderTextBlock (color) creating RenderElement", .{});
-            try renderSlide.elements.append(RenderElement{
+            try renderSlide.elements.append(self.allocator, RenderElement{
                 .kind = .text,
                 .position = item.position,
                 .size = item.size,
@@ -179,7 +179,7 @@ pub const SlideshowRenderer = struct {
         // not sure I want to allocate here, though
         var bulletSymbol: [:0]const u8 = undefined;
         if (item.bullet_symbol) |bs| {
-            bulletSymbol = try std.fmt.allocPrintZ(self.allocator, "{s}", .{bs});
+            bulletSymbol = try std.fmt.allocPrintSentinel(self.allocator, "{s}", .{bs}, 0);
         } else {
             // no bullet symbol - error
             log.err("No bullet symbol for text {?s}", .{item.text});
@@ -234,7 +234,7 @@ pub const SlideshowRenderer = struct {
 
                 if (is_bulleted) {
                     // 1. add indented bullet symbol at the current pos
-                    try renderSlide.elements.append(RenderElement{
+                    try renderSlide.elements.append(self.allocator, RenderElement{
                         .kind = .text,
                         .position = .{ .x = tl_pos.x + indent_in_pixels, .y = layoutContext.current_pos.y },
                         .size = .{ .x = available_width, .y = layoutContext.available_size.y },
@@ -394,7 +394,7 @@ pub const SlideshowRenderer = struct {
                     element.size.x = attempted_span_size.x;
                     //element.size = attempted_span_size;
                     log.debug(">>>>>>> appending non-wrapping text element: {?s}@{d:3.0},{d:3.0}", .{ element.text, element.position.x, element.position.y });
-                    try renderSlide.elements.append(element);
+                    try renderSlide.elements.append(self.allocator, element);
                     // advance render pos
                     layoutContext.current_pos.x += attempted_span_size.x;
                     // if something is rendered into the currend line, then adjust the line height if necessary
@@ -479,7 +479,7 @@ pub const SlideshowRenderer = struct {
                                 element.size.x = attempted_span_size.x;
                                 // element.size = attempted_span_size;
                                 log.debug(">>>>>>> appending wrapping text element: {?s} width={d:3.0}", .{ element.text, attempted_span_size.x });
-                                try renderSlide.elements.append(element);
+                                try renderSlide.elements.append(self.allocator, element);
                                 // advance render pos
                                 layoutContext.current_pos.x += attempted_span_size.x;
                                 // something is rendered into the currend line, so adjust the line height if necessary
@@ -509,7 +509,7 @@ pub const SlideshowRenderer = struct {
                                 // element.size = attempted_span_size;
                                 log.debug(">>>>>>> appending final text element: {?s} width={d:3.0}", .{ element.text, attempted_span_size.x });
                                 element.size.x = attempted_span_size.x;
-                                try renderSlide.elements.append(element);
+                                try renderSlide.elements.append(self.allocator, element);
                                 // advance render pos
                                 layoutContext.current_pos.x += attempted_span_size.x;
                                 // something is rendered into the currend line, so adjust the line height if necessary
@@ -603,7 +603,7 @@ pub const SlideshowRenderer = struct {
         if (item.img_path) |p| {
             const texture = self.texture_cache.getImageTexture(p, slideshow_filp) catch null;
             if (texture) |t| {
-                try renderSlide.elements.append(RenderElement{
+                try renderSlide.elements.append(self.allocator, RenderElement{
                     .kind = .image,
                     .position = item.position,
                     .size = item.size,
