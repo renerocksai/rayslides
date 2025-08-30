@@ -230,16 +230,20 @@ const Banner = struct {
     logo_texture: ?rl.Texture = null,
     showtime_seconds: f64 = banner_display_time_seconds,
     show: bool = false,
+    screen_width: i32,
+    screen_height: i32,
 
     pub const banner_display_time_seconds: f64 = 4.0;
 
-    pub fn init() !Banner {
+    pub fn init(screenWidth: i32, screenHeight: i32) !Banner {
         const img = try rl.loadImageFromMemory(".png", @embedFile("assets/raylib_96x96.png"));
         defer rl.unloadImage(img);
 
         return .{
             .logo_texture = try rl.loadTextureFromImage(img),
             .show = true,
+            .screen_width = screenWidth,
+            .screen_height = screenHeight,
         };
     }
 
@@ -260,8 +264,8 @@ const Banner = struct {
 
                     const w: i32 = 1200;
                     const h: i32 = 350;
-                    const l: i32 = @divTrunc(rl.getScreenWidth() - w, 2);
-                    const t: i32 = @divTrunc(rl.getScreenHeight() - h, 2);
+                    const l: i32 = @divTrunc(self.screen_width - w, 2);
+                    const t: i32 = @divTrunc(self.screen_height - h, 2);
                     const border_thick: f32 = 5.0;
                     const border_inset: f32 = 10.0;
                     const border_inset_i: i32 = @intFromFloat(border_inset);
@@ -333,13 +337,15 @@ pub fn main() anyerror!void {
     defer G.deinit();
     G.slideshow_filp_to_load = slideshow_to_load;
 
-    const screenWidth: i32 = if (rl.getScreenWidth() >= 1920) 1920 else 1280;
-    const screenHeight: i32 = if (rl.getScreenHeight() >= 1080) 1080 else 720;
+    const windowWidth: i32 = if (rl.getScreenWidth() >= 1920) 1920 else 1280;
+    const windowHeight: i32 = if (rl.getScreenHeight() >= 1080) 1080 else 720;
+    var screenWidth: i32 = windowWidth;
+    var screenHeight: i32 = windowHeight;
 
-    rl.setConfigFlags(.{ .window_resizable = false });
+    rl.setConfigFlags(.{ .window_resizable = true });
     rl.initWindow(screenWidth, screenHeight, "rayslides");
+    var first: bool = true;
     defer rl.closeWindow(); // Close window and OpenGL context
-
     rl.setTargetFPS(61);
     var beast_mode: bool = false;
 
@@ -349,10 +355,13 @@ pub fn main() anyerror!void {
     defer export_controller.deinit();
     var laser_pointer: LaserPointer = try .init(gpa);
     defer laser_pointer.deinit();
-    var banner: Banner = try .init();
+    var banner: Banner = try .init(screenWidth, screenHeight);
     defer banner.deinit();
 
+    var manual_fullscreen: bool = false;
+
     while (!rl.windowShouldClose()) { // Detect window close button or ESC key
+        std.debug.print("RENDER w={d}, h={d}\n", .{ screenWidth, screenHeight });
         // Update
         //----------------------------------------------------------------------------------
         // TODO: Update your variables here
@@ -402,7 +411,7 @@ pub fn main() anyerror!void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        rl.clearBackground(.white);
+        rl.clearBackground(.blank);
 
         // (re-) load slideshow
         if (G.slideshow_filp_to_load) |filp| {
@@ -425,8 +434,17 @@ pub fn main() anyerror!void {
         // render slide
         // G.slide_render_width = G.internal_render_size.x - ed_anim.current_size.x;
         // try G.slide_renderer.render(G.current_slide, slideAreaTL(), slideSizeInWindow(), G.internal_render_size);
-        try G.slide_renderer.render(G.current_slide, .{ .x = 0.0, .y = 0.0 }, .{ .x = @floatFromInt(screenWidth), .y = @floatFromInt(screenHeight) }, .{ .x = 1920, .y = 1080 });
-        // std.log.debug("slideAreaTL: {any}, slideSizeInWindow: {any}, internal_render_size: {any}", .{ slideAreaTL(), slideSizeInWindow(), G.internal_render_size });
+        const internal_render_size: rl.Vector2 = .{ .x = 1920, .y = 1080 };
+        if (!manual_fullscreen) {
+            screenWidth = rl.getScreenWidth();
+            screenHeight = rl.getScreenHeight();
+        }
+        const window_size: rl.Vector2 = .{ .x = @floatFromInt(screenWidth), .y = @floatFromInt(screenHeight) };
+        const slide_size_in_window = slideSizeInWindow(internal_render_size, window_size);
+        const slide_tl = slideAreaTL(internal_render_size, window_size);
+        try G.slide_renderer.render(G.current_slide, slide_tl, slide_size_in_window, internal_render_size);
+        // try G.slide_renderer.render(G.current_slide, .{ .x = 0.0, .y = 0.0 }, .{ .x = @floatFromInt(screenWidth), .y = @floatFromInt(screenHeight) }, .{ .x = 1920, .y = 1080 });
+        std.log.debug("window_size: {any}, slideAreaTL: {any}, slideSizeInWindow: {any}, internal_render_size: {any}", .{ window_size, slide_tl, slide_size_in_window, internal_render_size });
         if (beast_mode) {
             rl.drawFPS(20, 20);
         }
@@ -463,9 +481,40 @@ pub fn main() anyerror!void {
             }
         }
 
+        // hack for M1 macbook 14" with low resolution set to : 1512 x 981
+        if (first) {
+            rl.toggleBorderlessWindowed();
+            rl.toggleBorderlessWindowed();
+            first = false;
+        }
+
         if (rl.isKeyPressed(.f)) {
-            rl.setWindowSize(screenWidth, screenHeight);
-            rl.toggleFullscreen();
+            if (!manual_fullscreen) {
+                const monitor = rl.getCurrentMonitor();
+                rl.setWindowSize(rl.getMonitorWidth(monitor), rl.getMonitorHeight(monitor));
+                if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                    screenWidth = rl.getMonitorWidth(monitor);
+                    screenHeight = rl.getMonitorHeight(monitor);
+                    rl.toggleFullscreen();
+                } else {
+                    screenWidth = rl.getRenderWidth();
+                    screenHeight = rl.getRenderHeight();
+                    rl.toggleBorderlessWindowed();
+                }
+                manual_fullscreen = true;
+            } else {
+                // rl.toggleFullscreen();
+                screenWidth = windowWidth;
+                screenHeight = windowHeight;
+                if (rl.isKeyDown(.left_shift) or rl.isKeyDown(.right_shift)) {
+                    rl.toggleFullscreen();
+                } else {
+                    rl.toggleBorderlessWindowed();
+                }
+                // rl.toggleFullscreen();
+                rl.setWindowSize(windowWidth, windowHeight);
+                manual_fullscreen = false;
+            }
         }
 
         if (rl.isKeyPressed(.q)) {
@@ -692,4 +741,26 @@ fn loadSlideshow(filp: []const u8) !void {
         // setStatusMsg("Loading failed!");
         std.log.err("Loading failed: {any}", .{err});
     }
+}
+
+fn slideSizeInWindow(internal_render_size: rl.Vector2, window_size: rl.Vector2) rl.Vector2 {
+    var ret = rl.Vector2.zero();
+    ret.x = window_size.x;
+
+    // aspect ratio
+    ret.y = ret.x * internal_render_size.y / internal_render_size.x;
+    if (ret.y > window_size.y) {
+        ret.y = window_size.y - 1;
+        ret.x = ret.y * internal_render_size.x / internal_render_size.y;
+    }
+    return ret;
+}
+
+fn slideAreaTL(internal_render_size: rl.Vector2, window_size: rl.Vector2) rl.Vector2 {
+    const ss = slideSizeInWindow(internal_render_size, window_size);
+    var ret = rl.Vector2.zero();
+
+    ret.y = (window_size.y - ss.y) / 2.0;
+    ret.x = (window_size.x - ss.x) / 2.0;
+    return ret;
 }
